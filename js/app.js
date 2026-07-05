@@ -1,8 +1,8 @@
-// ======================================================
+/// ======================================================
 // CAD AR System
 // Version 2.0
 // app.js
-// メインアプリケーション（OpenCV完全接続版）
+// Debug Enhanced Version
 // ======================================================
 
 "use strict";
@@ -12,22 +12,30 @@
 ====================================================== */
 
 import { APP } from "./config.js";
-
 import { AppState } from "./state.js";
-
-import { log, error } from "./utils.js";
-
+import { log as utilLog, error } from "./utils.js";
 import { initializeUI, bindLoadButton, getPartNumber, setStatus } from "./ui.js";
-
 import { createQRCode } from "./qr.js";
-
 import { camera } from "./camera.js";
-
 import { dxfLoader } from "./dxf.js";
-
 import { marker } from "./marker.js";
-
 import { recognizer } from "./opencv-ar.js";
+
+/* ======================================================
+    画面デバッグログ（強化版）
+====================================================== */
+
+function log(msg) {
+    const el = document.getElementById("debug");
+    if (!el) return;
+
+    const time = new Date().toLocaleTimeString();
+    el.innerHTML += `[${time}] ${msg}<br>`;
+    el.scrollTop = el.scrollHeight;
+
+    // コンソールにも出す（PC用）
+    console.log(msg);
+}
 
 /* ======================================================
     OpenCV待機
@@ -35,30 +43,29 @@ import { recognizer } from "./opencv-ar.js";
 
 function waitForOpenCV() {
 
+    log("OpenCV待機開始");
+
     return new Promise(resolve => {
 
         const check = () => {
 
             if (window.cv && cv.Mat) {
 
+                log("cv検出OK");
+
                 cv.onRuntimeInitialized = () => {
-
+                    log("OpenCV Runtime Initialized");
                     resolve();
-
                 };
 
                 return;
-
             }
 
             requestAnimationFrame(check);
-
         };
 
         check();
-
     });
-
 }
 
 /* ======================================================
@@ -69,10 +76,9 @@ class CADARApplication {
 
     constructor() {
 
+        log("=== APP START ===");
         log(APP.NAME);
-
         log(APP.VERSION);
-
     }
 
     /* ==================================================
@@ -83,38 +89,44 @@ class CADARApplication {
 
         try {
 
-            log("Application Initialize");
+            log("① initialize start");
 
             //------------------------------------------
             // DOM取得
             //------------------------------------------
 
             AppState.video = document.getElementById("video");
-
             AppState.canvas = document.getElementById("canvas");
 
+            if (!AppState.video || !AppState.canvas) {
+                log("❌ video/canvas が見つからない");
+            }
+
             AppState.ctx = AppState.canvas.getContext("2d");
+
+            log("② DOM OK");
 
             //------------------------------------------
             // UI初期化
             //------------------------------------------
 
             initializeUI();
+            log("③ UI initialized");
 
             //------------------------------------------
             // QR生成
             //------------------------------------------
 
             createQRCode();
+            log("④ QR created");
 
             //------------------------------------------
             // ボタンイベント
             //------------------------------------------
 
             bindLoadButton(() => {
-
+                log("LOAD button clicked");
                 this.loadPart();
-
             });
 
             //------------------------------------------
@@ -122,8 +134,11 @@ class CADARApplication {
             //------------------------------------------
 
             setStatus("カメラ起動中");
+            log("⑤ camera start");
 
             await camera.start();
+
+            log("⑥ camera ready");
 
             //------------------------------------------
             // OpenCV起動待ち
@@ -137,7 +152,7 @@ class CADARApplication {
 
             recognizer.initialize();
 
-            log("OpenCV Ready");
+            log("⑦ OpenCV ready");
 
             //------------------------------------------
             // ARループ開始
@@ -153,13 +168,15 @@ class CADARApplication {
 
             setStatus("準備完了");
 
-            log("Application Ready");
+            log("=== APP READY ===");
 
         }
 
         catch (e) {
 
             error(e);
+
+            log("❌ INIT ERROR: " + e.message);
 
             setStatus("初期化エラー");
 
@@ -173,43 +190,48 @@ class CADARApplication {
 
     async loadPart() {
 
+        log("⑧ loadPart start");
+
         const partNumber = getPartNumber();
 
+        log("型番: " + partNumber);
+
         if (!partNumber) {
-
+            log("❌ 型番なし");
             alert("型番を入力してください。");
-
             return;
-
         }
 
         try {
 
             setStatus("図面読込中");
 
-            // JSONロード
             const data = await dxfLoader.load(partNumber);
 
-            AppState.partNumber = partNumber;
+            log("DXF load OK");
 
+            AppState.partNumber = partNumber;
             AppState.holeList = data.holes;
+
+            log("穴数: " + (AppState.holeList ? AppState.holeList.length : 0));
 
             marker.initialize();
 
-            // reference.jpg 読み込み
             await this.loadReferenceImage(partNumber);
 
             AppState.recognizing = true;
 
             setStatus("AR開始");
 
-            log("AR Ready");
+            log("=== AR READY ===");
 
         }
 
         catch (e) {
 
             error(e);
+
+            log("❌ DXF ERROR: " + e);
 
             setStatus("読込エラー");
 
@@ -223,6 +245,8 @@ class CADARApplication {
 
     async loadReferenceImage(partNumber) {
 
+        log("reference load start");
+
         return new Promise((resolve, reject) => {
 
             const img = new Image();
@@ -231,20 +255,20 @@ class CADARApplication {
 
             img.onload = () => {
 
+                log("reference loaded");
+
                 const mat = cv.imread(img);
 
                 AppState.referenceMat = mat;
 
-                log("Reference Loaded");
-
                 resolve();
-
             };
 
             img.onerror = () => {
 
-                reject("reference.jpg not found");
+                log("❌ reference.jpg not found");
 
+                reject("reference not found");
             };
 
         });
@@ -257,18 +281,17 @@ class CADARApplication {
 
     startARLoop() {
 
-        const video = AppState.video;
+        log("AR loop start");
 
+        const video = AppState.video;
         const ctx = AppState.ctx;
 
         const loop = () => {
 
-            if (AppState.recognizing && AppState.holeList) {
+            if (AppState.recognizing) {
 
-                // ① カメラ描画
                 ctx.drawImage(video, 0, 0);
 
-                // ② OpenCV処理
                 if (AppState.referenceMat) {
 
                     const frameMat = cv.imread(video);
@@ -276,26 +299,28 @@ class CADARApplication {
                     recognizer.process(frameMat, AppState.referenceMat);
 
                     frameMat.delete();
-
                 }
 
-                // ③ AR描画
                 const H = AppState.homography;
 
-                if (H && AppState.holeList.length > 0) {
+                if (H && AppState.holeList && AppState.holeList.length > 0) {
 
                     marker.drawAR(AppState.holeList, H);
 
+                } else {
+                    // 軽い監視ログ（連打しない）
+                    if (!this._warned) {
+                        log("⚠ homography or holeList not ready");
+                        this._warned = true;
+                    }
                 }
 
             }
 
             requestAnimationFrame(loop);
-
         };
 
         loop();
-
     }
 
 }
@@ -305,6 +330,8 @@ class CADARApplication {
 ====================================================== */
 
 window.addEventListener("DOMContentLoaded", async () => {
+
+    log("DOM loaded");
 
     const app = new CADARApplication();
 
