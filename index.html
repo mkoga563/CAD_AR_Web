@@ -4,11 +4,8 @@
 <head>
 
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <meta name="description" content="CAD AR System">
-
     <meta name="theme-color" content="#1976D2">
 
     <title>CAD AR System</title>
@@ -16,7 +13,7 @@
     <!-- CSS -->
     <link rel="stylesheet" href="style.css">
 
-    <!-- PWA（後で使用） ->
+    <!-- PWA（後で使用） -->
     <!-- <link rel="manifest" href="manifest.json"> -->
 
 </head>
@@ -26,28 +23,20 @@
     <!-- ==========================
          Header
     =========================== -->
-
     <header id="header">
 
         <div id="titleArea">
-
             <h1>CAD AR System</h1>
-
-            <div id="version">
-                Version 2.0
-            </div>
-
+            <div id="version">Version 2.0</div>
         </div>
 
         <div id="qrcode"></div>
 
     </header>
 
-
     <!-- ==========================
          Main
     =========================== -->
-
     <main id="main">
 
         <!-- 操作エリア -->
@@ -65,7 +54,6 @@
 
         </section>
 
-
         <!-- 状態表示 -->
         <section id="statusPanel">
 
@@ -80,7 +68,6 @@
             </div>
 
         </section>
-
 
         <!-- カメラ表示 -->
         <section id="cameraArea">
@@ -98,45 +85,45 @@
 
     </main>
 
-
     <!-- ==========================
          Footer
     =========================== -->
-
     <footer id="footer">
-
         CAD AR System © 2026
-
     </footer>
-
 
     <!-- ==========================
          Libraries
     =========================== -->
 
-    <!-- QRCode（軽量なのでCDN or ローカルどちらでもOK） -->
+    <!-- QRCode -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- OpenCV（重いのでローカル配置） -->
+
+    <!-- OpenCV -->
     <script async src="./lib/opencv.js"></script>
 
+    <!-- ==========================
+         Main App（重要）
+    =========================== -->
+    <script type="module" src="./js/app.js"></script>
 
-    <!-- Main App -->
-    <script type="module" src="js/app.js"></script>
-
+    <!-- ==========================
+         Debug Panel（最優先表示）
+    =========================== -->
     <div id="debug"
-     style="
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        max-height: 40%;
-        overflow: auto;
-        background: rgba(0,0,0,0.85);
-        color: #00ff00;
-        font-size: 12px;
-        z-index: 9999;
-        padding: 5px;
-     ">
+        style="
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            max-height: 40%;
+            overflow: auto;
+            background: rgba(0,0,0,0.85);
+            color: #00ff00;
+            font-size: 12px;
+            z-index: 9999;
+            padding: 5px;
+        ">
     </div>
 
 </body>
