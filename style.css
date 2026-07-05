@@ -1,0 +1,400 @@
+/* =====================================================
+   CAD AR System
+   Version 2.0
+   style.css
+===================================================== */
+
+/* ---------- Reset ---------- */
+
+*,
+*::before,
+*::after{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+/* ---------- Root ---------- */
+
+:root{
+
+    --main-color:#1976D2;
+    --main-dark:#125EA8;
+    --success:#2E7D32;
+    --warning:#EF6C00;
+    --danger:#C62828;
+
+    --bg:#F4F6F9;
+
+    --panel:#FFFFFF;
+
+    --border:#D5D5D5;
+
+    --text:#333333;
+
+    --shadow:0 3px 8px rgba(0,0,0,.15);
+
+    --radius:10px;
+
+}
+
+/* ---------- Body ---------- */
+
+body{
+
+    font-family:
+        "Yu Gothic",
+        "Meiryo",
+        sans-serif;
+
+    background:var(--bg);
+
+    color:var(--text);
+
+    min-height:100vh;
+
+}
+
+/* ---------- Header ---------- */
+
+#header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:15px 20px;
+
+    background:var(--main-color);
+
+    color:white;
+
+    box-shadow:var(--shadow);
+
+}
+
+#titleArea{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+#titleArea h1{
+
+    font-size:32px;
+
+}
+
+#version{
+
+    font-size:14px;
+
+    opacity:.9;
+
+}
+
+/* ---------- QR ---------- */
+
+#qrcode{
+
+    width:110px;
+
+    height:110px;
+
+    background:white;
+
+    border-radius:8px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+/* ---------- Main ---------- */
+
+#main{
+
+    width:min(1400px,95%);
+
+    margin:20px auto;
+
+}
+
+/* ---------- Control ---------- */
+
+#controlPanel{
+
+    display:flex;
+
+    gap:15px;
+
+    align-items:center;
+
+    flex-wrap:wrap;
+
+    background:var(--panel);
+
+    padding:20px;
+
+    border-radius:var(--radius);
+
+    box-shadow:var(--shadow);
+
+    margin-bottom:20px;
+
+}
+
+#controlPanel label{
+
+    font-size:20px;
+
+    font-weight:bold;
+
+}
+
+#partNo{
+
+    width:260px;
+
+    padding:12px;
+
+    font-size:20px;
+
+    border:1px solid var(--border);
+
+    border-radius:8px;
+
+    outline:none;
+
+}
+
+#partNo:focus{
+
+    border:2px solid var(--main-color);
+
+}
+
+#loadBtn{
+
+    padding:12px 30px;
+
+    font-size:18px;
+
+    border:none;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    color:white;
+
+    background:var(--main-color);
+
+    transition:.2s;
+
+}
+
+#loadBtn:hover{
+
+    background:var(--main-dark);
+
+}
+
+#loadBtn:active{
+
+    transform:scale(.97);
+
+}
+
+/* ---------- Status ---------- */
+
+#statusPanel{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    background:var(--panel);
+
+    margin-bottom:20px;
+
+    padding:15px 20px;
+
+    border-radius:var(--radius);
+
+    box-shadow:var(--shadow);
+
+    font-size:18px;
+
+}
+
+#statusText{
+
+    color:var(--success);
+
+    font-weight:bold;
+
+}
+
+#fps{
+
+    font-weight:bold;
+
+}
+
+/* ---------- Camera ---------- */
+
+#cameraArea{
+
+    position:relative;
+
+    width:100%;
+
+    aspect-ratio:16 / 9;
+
+    background:black;
+
+    border-radius:var(--radius);
+
+    overflow:hidden;
+
+    box-shadow:var(--shadow);
+
+}
+
+/* ---------- Video ---------- */
+
+#video{
+
+    width:100%;
+
+    height:100%;
+
+    object-fit:contain;
+
+    display:block;
+
+}
+
+/* ---------- Canvas ---------- */
+
+#canvas{
+
+    position:absolute;
+
+    top:0;
+
+    left:0;
+
+    width:100%;
+
+    height:100%;
+
+    pointer-events:none;
+
+}
+
+/* ---------- Footer ---------- */
+
+#footer{
+
+    margin:30px 0;
+
+    text-align:center;
+
+    color:#666;
+
+    font-size:14px;
+
+}
+
+/* ---------- Tablet ---------- */
+
+@media (max-width:900px){
+
+    #header{
+
+        flex-direction:column;
+
+        gap:15px;
+
+    }
+
+    #controlPanel{
+
+        flex-direction:column;
+
+        align-items:stretch;
+
+    }
+
+    #partNo{
+
+        width:100%;
+
+    }
+
+    #loadBtn{
+
+        width:100%;
+
+    }
+
+    #statusPanel{
+
+        flex-direction:column;
+
+        gap:10px;
+
+        align-items:flex-start;
+
+    }
+
+}
+
+/* ---------- Smartphone ---------- */
+
+@media (max-width:600px){
+
+    #titleArea h1{
+
+        font-size:24px;
+
+    }
+
+    #version{
+
+        font-size:12px;
+
+    }
+
+    #qrcode{
+
+        width:90px;
+
+        height:90px;
+
+    }
+
+    #controlPanel{
+
+        padding:15px;
+
+    }
+
+    #statusPanel{
+
+        padding:15px;
+
+    }
+
+}
