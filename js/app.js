@@ -137,7 +137,13 @@ class CADARApplication {
             log("⑤ camera start");
 
             await camera.start();
+            // カメラサイズをCanvasへ反映
+             AppState.canvas.width = AppState.video.videoWidth;
+             AppState.canvas.height = AppState.video.videoHeight;
 
+             log(
+                  `Canvas ${AppState.canvas.width} x ${AppState.canvas.height}`
+             );
             log("⑥ camera ready");
 
             //------------------------------------------
@@ -290,16 +296,26 @@ class CADARApplication {
 
             if (AppState.recognizing) {
 
-                ctx.drawImage(video, 0, 0);
+                // カメラ映像をCanvasへ描画
+                ctx.drawImage(
+                    video,
+                    0,
+                    0,
+                    AppState.canvas.width,
+                    AppState.canvas.height
+                );
 
                 if (AppState.referenceMat) {
 
-                    const frameMat = cv.imread(video);
+                 // CanvasからOpenCVへ
+                    const frameMat = cv.imread(AppState.canvas);
 
                     recognizer.process(frameMat, AppState.referenceMat);
 
                     frameMat.delete();
                 }
+
+                
 
                 const H = AppState.homography;
 

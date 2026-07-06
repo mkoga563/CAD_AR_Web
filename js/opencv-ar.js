@@ -1,6 +1,6 @@
-/// ======================================================
+// ======================================================
 // CAD AR System
-// OpenCV AR Engine（安定版）
+// OpenCV AR Engine（デバッグ版）
 // ======================================================
 
 "use strict";
@@ -15,6 +15,7 @@ class OpenCVAR {
         this.orb = null;
         this.matcher = null;
         this.lastProcessTime = 0;
+        this.debugCounter = 0;
 
     }
 
@@ -24,9 +25,8 @@ class OpenCVAR {
 
     initialize() {
 
-        this.orb = new cv.ORB();
+        this.orb = new cv.ORB(1000);
 
-        // ★ crossCheck無しに変更（安定性UP）
         this.matcher = new cv.BFMatcher(cv.NORM_HAMMING, false);
 
         log("OpenCV AR Ready");
@@ -41,62 +41,133 @@ class OpenCVAR {
 
         const now = performance.now();
 
-        // ★ 10fps制限（維持）
-        if (now - this.lastProcessTime < 100) return;
+        if (now - this.lastProcessTime < 100)
+            return;
 
         this.lastProcessTime = now;
 
-        if (!frameMat || !referenceMat) return;
+        if (!frameMat || !referenceMat)
+            return;
+
+        let grayScene = new cv.Mat();
+        let grayRef = new cv.Mat();
 
         let kp1 = new cv.KeyPointVector();
         let kp2 = new cv.KeyPointVector();
+
         let des1 = new cv.Mat();
         let des2 = new cv.Mat();
 
         try {
 
-            // ==========================
-            // 特徴点抽出
-            // ==========================
-            this.orb.detectAndCompute(frameMat, new cv.Mat(), kp1, des1);
-            this.orb.detectAndCompute(referenceMat, new cv.Mat(), kp2, des2);
+            //------------------------------------------------
+            // グレースケール化
+            //------------------------------------------------
 
-            if (des1.empty() || des2.empty()) return;
+            cv.cvtColor(frameMat, grayScene, cv.COLOR_RGBA2GRAY);
+            cv.cvtColor(referenceMat, grayRef, cv.COLOR_RGBA2GRAY);
 
-            // ==========================
-            // マッチング
-            // ==========================
+            //------------------------------------------------
+            // ORB
+            //------------------------------------------------
+
+            this.orb.detectAndCompute(
+                grayScene,
+                new cv.Mat(),
+                kp1,
+                des1
+            );
+
+            this.orb.detectAndCompute(
+                grayRef,
+                new cv.Mat(),
+                kp2,
+                des2
+            );
+
+            //------------------------------------------------
+            // デバッグ
+            //------------------------------------------------
+
+            if (++this.debugCounter % 10 === 0) {
+
+                log(
+                    "KP Scene : " + kp1.size()
+                );
+
+                log(
+                    "KP Ref   : " + kp2.size()
+                );
+
+            }
+
+            if (des1.empty() || des2.empty()) {
+
+                log("Descriptor Empty");
+
+                AppState.homography = null;
+
+                return;
+
+            }
+
+            //------------------------------------------------
+            // KNN Match
+            //------------------------------------------------
+
             let matches = new cv.DMatchVectorVector();
 
-            this.matcher.knnMatch(des1, des2, matches, 2);
+            this.matcher.knnMatch(
+                des1,
+                des2,
+                matches,
+                2
+            );
 
             let good = [];
 
-            // Lowe ratio test（重要）
             for (let i = 0; i < matches.size(); i++) {
 
                 const m = matches.get(i);
 
-                if (m.size() < 2) continue;
+                if (m.size() < 2)
+                    continue;
 
                 const m1 = m.get(0);
                 const m2 = m.get(1);
 
                 if (m1.distance < 0.75 * m2.distance) {
+
                     good.push(m1);
+
                 }
 
             }
 
             matches.delete();
 
-            if (good.length < 8) return;
+            if (this.debugCounter % 10 === 0) {
 
-            // ==========================
-            // 座標生成
-            // ==========================
-            const srcPts = [];
-            const dstPts = [];
+                log("Good Match : " + good.length);
+
+            }
+
+            if (good.length < 8) {
+
+                log("Not enough matches");
+
+                AppState.homography = null;
+
+                return;
+
+            }
+
+            //------------------------------------------------
+            // 座標
+            //------------------------------------------------
+
+            let srcPts = [];
+            let dstPts = [];
 
             for (const m of good) {
 
@@ -108,15 +179,29 @@ class OpenCVAR {
 
             }
 
-            const srcMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, srcPts);
-            const dstMat = cv.matFromArray(good.length, 1, cv.CV_32FC2, dstPts);
+            let srcMat =
+                cv.matFromArray(
+                    good.length,
+                    1,
+                    cv.CV_32FC2,
+                    srcPts
+                );
 
-            const mask = new cv.Mat();
+            let dstMat =
+                cv.matFromArray(
+                    good.length,
+                    1,
+                    cv.CV_32FC2,
+                    dstPts
+                );
 
-            // ==========================
-            // ホモグラフィ
-            // ==========================
-            const H = cv.findHomography(
+            let mask = new cv.Mat();
+
+            //------------------------------------------------
+            // Homography
+            //------------------------------------------------
+
+            let H = cv.findHomography(
                 srcMat,
                 dstMat,
                 cv.RANSAC,
@@ -124,24 +209,21 @@ class OpenCVAR {
                 mask
             );
 
-            // ★ここが重要（安全代入）
             if (!H || H.empty()) {
 
-                log("⚠ Homography failed");
+                log("Homography NG");
 
                 AppState.homography = null;
 
-            } else {
+            }
+            else {
 
                 AppState.homography = H;
 
-                log("H OK");
+                log("Homography OK");
 
             }
 
-            // ==========================
-            // cleanup
-            // ==========================
             srcMat.delete();
             dstMat.delete();
             mask.delete();
@@ -149,17 +231,22 @@ class OpenCVAR {
         }
         catch (e) {
 
-            log("❌ AR ERROR: " + e.message);
+            log("AR ERROR : " + e);
 
         }
         finally {
 
+            grayScene.delete();
+            grayRef.delete();
+
             kp1.delete();
             kp2.delete();
+
             des1.delete();
             des2.delete();
 
         }
+
     }
 
 }
