@@ -70,26 +70,19 @@ async function waitForOpenCV() {
 
     return new Promise(resolve => {
 
-        // OpenCVが既にロード済み
-        if (window.cv && typeof cv.Mat === "function") {
+        const timer = setInterval(() => {
 
-            debug("OpenCV Ready");
-            resolve();
-            return;
+            if (window.cv && typeof cv.Mat === "function") {
 
-        }
+                clearInterval(timer);
 
-        // OpenCVロード完了イベント
-        window.Module = {
+                debug("OpenCV Ready");
 
-            onRuntimeInitialized() {
-
-                debug("OpenCV Runtime Ready");
                 resolve();
 
             }
 
-        };
+        }, 100);
 
     });
 
