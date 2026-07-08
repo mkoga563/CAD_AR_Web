@@ -1,54 +1,230 @@
 // ======================================================
 // CAD AR System
-// Version 2.0
+// Version 3.0
 // ui.js
-// ユーザーインターフェース
 // ======================================================
 
 "use strict";
 
+import { AppState } from "./state.js";
+
 /* ======================================================
-   HTML要素
+    UI Element
 ====================================================== */
 
-let partNoInput = null;
-let loadButton = null;
-let statusLabel = null;
-let fpsLabel = null;
+const ui = {
+
+    partNo: null,
+
+    loadButton: null,
+
+    status: null,
+
+    debug: null,
+
+    markerCheck: null
+
+};
 
 /* ======================================================
-   初期化
+    初期化
 ====================================================== */
 
 export function initializeUI() {
 
-    partNoInput = document.getElementById("partNo");
-    loadButton = document.getElementById("loadBtn");
-    statusLabel = document.getElementById("statusText");
-    fpsLabel = document.getElementById("fps");
+    ui.partNo =
+        document.getElementById("partNo");
 
-    if (!partNoInput) {
-        console.error("partNo が見つかりません。");
-    }
+    ui.loadButton =
+        document.getElementById("loadButton");
 
-    if (!loadButton) {
-        console.error("loadBtn が見つかりません。");
-    }
+    ui.status =
+        document.getElementById("status");
 
-    if (!statusLabel) {
-        console.error("statusText が見つかりません。");
-    }
+    ui.debug =
+        document.getElementById("debug");
 
-    if (!fpsLabel) {
-        console.error("fps が見つかりません。");
-    }
+    ui.markerCheck =
+        document.getElementById("markerVisible");
 
-    // Enterキーでも読込み
-    partNoInput?.addEventListener("keydown", (event) => {
+    console.log("UI Ready");
 
-        if (event.key === "Enter") {
+}
 
-            loadButton.click();
+/* ======================================================
+    Load Button
+====================================================== */
+
+export function bindLoadButton(callback) {
+
+    if (!ui.loadButton)
+        return;
+
+    ui.loadButton.onclick = callback;
+
+}
+
+/* ======================================================
+    部品番号取得
+====================================================== */
+
+export function getPartNumber() {
+
+    if (!ui.partNo)
+        return "";
+
+    return ui.partNo.value.trim();
+
+}
+
+/* ======================================================
+    ステータス表示
+====================================================== */
+
+export function setStatus(text) {
+
+    AppState.setStatus(text);
+
+    if (ui.status)
+        ui.status.textContent = text;
+
+}
+/* ======================================================
+    部品番号設定
+====================================================== */
+
+export function setPartNumber(partNo) {
+
+    if (!ui.partNo)
+        return;
+
+    ui.partNo.value = partNo;
+
+}
+
+/* ======================================================
+    Debug表示
+====================================================== */
+
+export function addDebug(text) {
+
+    if (!ui.debug)
+        return;
+
+    const time = new Date().toLocaleTimeString();
+
+    ui.debug.innerHTML +=
+
+        "[" + time + "] " +
+        text +
+        "<br>";
+
+    ui.debug.scrollTop =
+        ui.debug.scrollHeight;
+
+}
+
+/* ======================================================
+    Debugクリア
+====================================================== */
+
+export function clearDebug() {
+
+    if (!ui.debug)
+        return;
+
+    ui.debug.innerHTML = "";
+
+}
+
+/* ======================================================
+    FPS表示
+====================================================== */
+
+export function updateFPS() {
+
+    const fpsLabel =
+        document.getElementById("fps");
+
+    if (!fpsLabel)
+        return;
+
+    fpsLabel.textContent =
+        AppState.fps + " FPS";
+
+}
+
+/* ======================================================
+    Message
+====================================================== */
+
+export function showMessage(text) {
+
+    console.log(text);
+
+    setStatus(text);
+
+}
+
+/* ======================================================
+    Error
+====================================================== */
+
+export function showError(text) {
+
+    console.error(text);
+
+    setStatus(text);
+
+    alert(text);
+
+}
+
+/* ======================================================
+    Marker表示
+====================================================== */
+
+export function bindMarkerCheck(callback) {
+
+    if (!ui.markerCheck)
+        return;
+
+    ui.markerCheck.onchange = () => {
+
+        callback(ui.markerCheck.checked);
+
+    };
+
+}
+
+/* ======================================================
+    Marker状態
+====================================================== */
+
+export function markerVisible() {
+
+    if (!ui.markerCheck)
+        return true;
+
+    return ui.markerCheck.checked;
+
+}
+/* ======================================================
+    Enterキーで読込み
+====================================================== */
+
+export function bindEnterKey(callback) {
+
+    if (!ui.partNo)
+        return;
+
+    ui.partNo.addEventListener("keydown", (e) => {
+
+        if (e.key === "Enter") {
+
+            e.preventDefault();
+
+            callback();
 
         }
 
@@ -57,141 +233,128 @@ export function initializeUI() {
 }
 
 /* ======================================================
-   型番取得
+    部品番号保存
 ====================================================== */
 
-export function getPartNumber() {
+export function saveLastPartNumber() {
 
-    if (!partNoInput) {
+    if (!ui.partNo)
+        return;
 
-        return "";
+    localStorage.setItem(
+        "cadar-last-part",
+        ui.partNo.value.trim()
+    );
+
+}
+
+/* ======================================================
+    部品番号復元
+====================================================== */
+
+export function loadLastPartNumber() {
+
+    if (!ui.partNo)
+        return;
+
+    const partNo = localStorage.getItem(
+        "cadar-last-part"
+    );
+
+    if (partNo) {
+
+        ui.partNo.value = partNo;
 
     }
 
-    return partNoInput.value.trim();
-
 }
 
 /* ======================================================
-   型番設定
+    ローディング表示
 ====================================================== */
 
-export function setPartNumber(value) {
+export function showLoading(text = "Loading...") {
 
-    if (!partNoInput) return;
+    setStatus(text);
 
-    partNoInput.value = value;
+    document.body.style.cursor = "wait";
 
 }
 
 /* ======================================================
-   型番入力へフォーカス
+    ローディング終了
 ====================================================== */
 
-export function focusPartNumber() {
+export function hideLoading() {
 
-    if (!partNoInput) return;
-
-    partNoInput.focus();
+    document.body.style.cursor = "default";
 
 }
 
 /* ======================================================
-   読込みボタン
-====================================================== */
-
-export function bindLoadButton(callback) {
-
-    if (!loadButton) return;
-
-    loadButton.addEventListener("click", callback);
-
-}
-
-/* ======================================================
-   状態表示
-====================================================== */
-
-export function setStatus(message) {
-
-    if (!statusLabel) return;
-
-    statusLabel.textContent = message;
-
-}
-
-/* ======================================================
-   FPS表示
-====================================================== */
-
-export function setFPS(value) {
-
-    if (!fpsLabel) return;
-
-    fpsLabel.textContent = value;
-
-}
-
-/* ======================================================
-   ボタン有効
-====================================================== */
-
-export function enableLoadButton() {
-
-    if (!loadButton) return;
-
-    loadButton.disabled = false;
-
-}
-
-/* ======================================================
-   ボタン無効
-====================================================== */
-
-export function disableLoadButton() {
-
-    if (!loadButton) return;
-
-    loadButton.disabled = true;
-
-}
-
-/* ======================================================
-   型番クリア
-====================================================== */
-
-export function clearPartNumber() {
-
-    if (!partNoInput) return;
-
-    partNoInput.value = "";
-
-}
-
-/* ======================================================
-   UI初期状態
+    UIリセット
 ====================================================== */
 
 export function resetUI() {
 
-    clearPartNumber();
+    clearDebug();
 
-    setStatus("準備完了");
-
-    setFPS("0");
-
-    enableLoadButton();
+    setStatus("待機中");
 
 }
 
 /* ======================================================
-   エラー表示
+    ダークモード
 ====================================================== */
 
-export function showError(message) {
+export function setDarkMode(enable) {
 
-    setStatus("エラー");
-
-    alert(message);
+    document.body.classList.toggle(
+        "dark",
+        enable
+    );
 
 }
+
+/* ======================================================
+    Version表示
+====================================================== */
+
+export function setVersion(version) {
+
+    const label =
+        document.getElementById("version");
+
+    if (!label)
+        return;
+
+    label.textContent =
+        "Version " + version;
+
+}
+
+/* ======================================================
+    Destroy
+====================================================== */
+
+export function destroyUI() {
+
+    clearDebug();
+
+    if (ui.loadButton)
+        ui.loadButton.onclick = null;
+
+    if (ui.markerCheck)
+        ui.markerCheck.onchange = null;
+
+}
+
+/* ======================================================
+    Export
+====================================================== */
+
+export {
+
+    ui
+
+};

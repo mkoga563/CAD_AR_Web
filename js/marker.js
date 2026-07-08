@@ -1,179 +1,490 @@
 // ======================================================
 // CAD AR System
-// marker.js（デバッグ強化・安定版）
+// Version 3.0
+// marker.js
 // ======================================================
 
 "use strict";
 
-import { AppState } from "./state.js";
-import { MARKER } from "./config.js";
-import { log } from "./utils.js";
-import { applyHomography } from "./utils.js";
+import { APP } from "./config.js";
+/* ======================================================
+    Marker Renderer
+====================================================== */
 
 class MarkerRenderer {
 
     constructor() {
-        this.ctx = null;
+
+        this.holes = [];
+        this.outline = [];
+
+        this.visible = true;
+
+        this.markerRadius =
+            APP.AR.MARKER_RADIUS;
+
+        this.originX = 0;
+        this.originY = 0;
+
     }
 
-    /* ======================================================
-       初期化
-    ====================================================== */
-
-    initialize() {
-        this.ctx = AppState.ctx;
-        log("Marker Initialized");
-    }
-
-    /* ======================================================
-       クリア
-    ====================================================== */
+    /* ==================================================
+        初期化
+    ================================================== */
 
     clear() {
-        if (!this.ctx) return;
 
-        this.ctx.clearRect(
-            0,
-            0,
-            AppState.canvas.width,
-            AppState.canvas.height
+        this.holes = [];
+        this.outline = [];
+
+    }
+
+    /* ==================================================
+        CADデータ読込
+    ================================================== */
+
+    load(data) {
+
+        this.clear();
+
+        if (!data)
+            return;
+
+        if (Array.isArray(data)) {
+
+            this.holes = data;
+
+        }
+        else {
+
+            this.holes = data.holes || [];
+            this.outline = data.outline || [];
+
+        }
+        //------------------------------------------
+        // CAD原点取得
+        //------------------------------------------
+
+        if (this.outline.length > 0) {
+
+            let minX = Number.MAX_VALUE;
+            let minY = Number.MAX_VALUE;
+
+            for (const p of this.outline) {
+
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+
+            }
+
+            this.originX = minX;
+            this.originY = minY;
+
+        }
+
+    }
+
+    /* ==================================================
+        穴数
+    ================================================== */
+
+    count() {
+
+        return this.holes.length;
+
+    }
+
+    /* ==================================================
+        表示切替
+    ================================================== */
+
+    show(flag = true) {
+
+        this.visible = flag;
+
+    }
+
+    /* ==================================================
+        色取得
+    ================================================== */
+
+    getColor(hole) {
+
+        const d = hole.diameter || hole.d;
+
+        if (!d)
+            return APP.COLOR.OTHER;
+
+        if (Math.abs(d - 2.6) < 0.2)
+            return APP.COLOR.M3;   // M3
+
+        if (Math.abs(d - 3.4) < 0.2)
+            return APP.COLOR.M4;   // M4
+
+        if (Math.abs(d - 4.3) < 0.2)
+            return APP.COLOR.M5;   // M5
+
+        return APP.COLOR.OTHER;
+
+    }
+    /* ==================================================
+    描画
+================================================== */
+
+    draw(ctx, transform) {
+
+        if (!this.visible)
+            return;
+
+        if (!ctx)
+            return;
+
+        if (!transform)
+            return;
+
+        //------------------------------------------
+        // 輪郭描画
+        //------------------------------------------
+
+        if (this.outline.length > 1) {
+
+            ctx.strokeStyle =
+                APP.COLOR.OUTLINE;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+
+            this.outline.forEach((p, index) => {
+
+                const pt = this.transformPoint(p, transform);
+
+                if (index === 0)
+                    ctx.moveTo(pt.x, pt.y);
+                else
+                    ctx.lineTo(pt.x, pt.y);
+
+            });
+
+            ctx.closePath();
+            ctx.stroke();
+
+        }
+
+        //------------------------------------------
+        // 穴描画
+        //------------------------------------------
+
+
+
+        this.drawAll(
+            ctx,
+            transform
         );
+
+
+
     }
 
-    /* ======================================================
-       基本描画
-    ====================================================== */
+    /* ==================================================
+        穴描画
+    ================================================== */
 
-    drawCircle(x, y, radius = MARKER.RADIUS, color = MARKER.COLOR) {
-        if (!this.ctx) return;
+    drawHole(ctx, hole, transform) {
 
-        this.ctx.beginPath();
-        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        const p = this.transformPoint(
+            hole,
+            transform
+        );
 
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = MARKER.LINE_WIDTH;
-        this.ctx.stroke();
-    }
+        const color =
+            this.getColor(hole);
 
-    drawCross(x, y, size = 10, color = MARKER.COLOR) {
-        if (!this.ctx) return;
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
 
-        this.ctx.beginPath();
+        //------------------------------------------
+        // マーカー半径
+        //------------------------------------------
 
-        this.ctx.moveTo(x - size, y);
-        this.ctx.lineTo(x + size, y);
+        const radius =
 
-        this.ctx.moveTo(x, y - size);
-        this.ctx.lineTo(x, y + size);
+            this.markerRadius *
 
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-    }
+            Math.max(
+                0.7,
+                transform.scale
+            );
 
-    drawText(text, x, y) {
-        if (!this.ctx) return;
+        //------------------------------------------
+        // 円
+        //------------------------------------------
 
-        this.ctx.fillStyle = MARKER.FONT_COLOR;
-        this.ctx.font = `${MARKER.FONT_SIZE}px sans-serif`;
-        this.ctx.fillText(text, x, y);
-    }
+        ctx.beginPath();
 
-    /* ======================================================
-       単一穴
-    ====================================================== */
+        ctx.arc(
+            p.x,
+            p.y,
+            radius,
+            0,
+            Math.PI * 2
+        );
 
-    drawHole(hole) {
-        this.drawCircle(hole.x, hole.y, hole.r ?? MARKER.RADIUS);
-        this.drawCross(hole.x, hole.y);
+        ctx.stroke();
 
-        if (hole.name) {
-            this.drawText(hole.name, hole.x + 12, hole.y - 10);
+        //------------------------------------------
+        // 十字
+        //------------------------------------------
+
+        const crossSize =
+            APP.AR.CROSS_SIZE *
+            Math.max(0.7, transform.scale);
+
+        ctx.beginPath();
+
+        ctx.moveTo(p.x - crossSize, p.y);
+        ctx.lineTo(p.x + crossSize, p.y);
+
+        ctx.moveTo(p.x, p.y - crossSize);
+        ctx.lineTo(p.x, p.y + crossSize);
+
+        ctx.stroke();
+        //------------------------------------------
+        // 穴径
+        //------------------------------------------
+
+        if (hole.diameter || hole.d) {
+
+            ctx.font = "16px Arial";
+
+            ctx.fillText(
+
+                (hole.diameter || hole.d).toFixed(1),
+
+                p.x + 10,
+
+                p.y - 10
+
+            );
+
         }
+
     }
 
-    /* ======================================================
-       通常描画
-    ====================================================== */
+    /* ==================================================
+    座標変換
+================================================== */
 
-    drawHoleList(holeList) {
-        this.clear();
+    transformPoint(point, transform) {
 
-        for (const hole of holeList) {
-            this.drawHole(hole);
-        }
+        //------------------------------------------
+        // CAD原点補正
+        //------------------------------------------
+
+        const originX = this.originX || 0;
+        const originY = this.originY || 0;
+
+        const rad =
+            transform.rotation * Math.PI / 180;
+
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        //------------------------------------------
+        // 原点を補正して拡大
+        //------------------------------------------
+
+        const x =
+            (point.x - originX) * transform.scale;
+
+        const y =
+            (point.y - originY) * transform.scale;
+
+        //------------------------------------------
+        // 回転＋移動
+        //------------------------------------------
+
+        return {
+
+            x:
+                transform.x +
+                x * cos -
+                y * sin,
+
+            y:
+                transform.y +
+                x * sin +
+                y * cos
+
+        };
+
     }
+    /* ==================================================
+    マーカーサイズ
+================================================== */
 
-    /* ======================================================
-       AR描画（デバッグ強化版）
-    ====================================================== */
+    setMarkerRadius(radius) {
 
-    drawAR(holeList, H) {
-
-        if (!this.ctx) {
-            log("❌ ctxなし");
+        if (radius <= 0)
             return;
-        }
 
-        if (!holeList || holeList.length === 0) {
-            log("⚠ holeList empty");
+        this.markerRadius = radius;
+
+    }
+
+    /* ==================================================
+        表示切替
+    ================================================== */
+
+    toggle() {
+
+        this.visible = !this.visible;
+
+    }
+
+    /* ==================================================
+        穴番号表示
+    ================================================== */
+
+    drawIndex(ctx, hole, point, index) {
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "12px Arial";
+
+        ctx.fillText(
+
+            String(index + 1),
+
+            point.x + 12,
+
+            point.y + 14
+
+        );
+
+    }
+
+    /* ==================================================
+        デバッグ表示
+    ================================================== */
+
+    drawDebug(ctx) {
+
+        if (!ctx)
             return;
+
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        ctx.font = "16px Arial";
+
+        ctx.fillText(
+            "Hole Count : " + this.holes.length,
+            20,
+            30
+        );
+
+        ctx.fillText(
+            "Outline : " + this.outline.length,
+            20,
+            55
+        );
+
+        ctx.fillText(
+            "Marker Radius : " + this.markerRadius,
+            20,
+            80
+        );
+        ctx.fillText(
+
+            "Visible : " + this.visible,
+
+            20,
+
+            105
+
+        );
+
+    }
+
+    /* ==================================================
+        描画範囲チェック
+    ================================================== */
+
+    isInsideCanvas(ctx, point) {
+
+        if (
+            point.x < 0 ||
+            point.y < 0 ||
+            point.x > ctx.canvas.width ||
+            point.y > ctx.canvas.height
+        ) {
+
+            return false;
+
         }
 
-        if (!H) {
-            log("⚠ Homography null");
+        return true;
+
+    }
+
+    /* ==================================================
+        全穴描画（改良版）
+    ================================================== */
+
+    drawAll(ctx, transform) {
+
+        if (!this.visible)
             return;
-        }
 
-        this.clear();
+        let index = 0;
 
-        log("AR DRAW START");
+        for (const hole of this.holes) {
 
-        for (const hole of holeList) {
+            const p = this.transformPoint(
+                hole,
+                transform
+            );
 
-            const p = applyHomography(H, hole.x, hole.y);
-
-            // --------------------------
-            // 異常チェック
-            // --------------------------
-            if (!p || isNaN(p.x) || isNaN(p.y)) {
-                log(`❌ transform fail: ${hole.x},${hole.y}`);
+            if (!this.isInsideCanvas(ctx, p))
                 continue;
-            }
 
-            // --------------------------
-            // デバッグ表示（重要）
-            // --------------------------
-            log(`→ ${hole.x},${hole.y} => ${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+            this.drawHole(
+                ctx,
+                hole,
+                transform
+            );
 
-            // --------------------------
-            // 強制可視マーカー（超重要）
-            // --------------------------
+            this.drawIndex(
+                ctx,
+                hole,
+                p,
+                index
+            );
 
-            // 赤点（絶対見える）
-            this.ctx.fillStyle = "red";
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-            this.ctx.fill();
+            index++;
 
-            // 円
-            this.drawCircle(p.x, p.y, hole.r ?? MARKER.RADIUS, "lime");
-
-            // 十字
-            this.drawCross(p.x, p.y, 10, "lime");
-
-            // テキスト
-            if (hole.name) {
-                this.drawText(
-                    hole.name,
-                    p.x + 10,
-                    p.y - 10
-                );
-            }
         }
 
-        log("AR DRAW END");
     }
+
+    /* ==================================================
+        情報取得
+    ================================================== */
+
+    getHoles() {
+
+        return this.holes;
+
+    }
+
+    getOutline() {
+
+        return this.outline;
+
+    }
+
 }
 
-export const marker = new MarkerRenderer();
+/* ======================================================
+    Singleton
+====================================================== */
+
+export const marker =
+    new MarkerRenderer();

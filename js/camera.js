@@ -1,142 +1,461 @@
 // ======================================================
 // CAD AR System
-// Version 2.0
+// Version 3.0
 // camera.js
-// Cameraクラス
 // ======================================================
 
 "use strict";
 
-import { CAMERA } from "./config.js";
-import { AppState } from "./state.js";
-import { log, error } from "./utils.js";
+import { APP } from "./config.js";
 
-class Camera {
+import { AppState } from "./state.js";
+
+/* ======================================================
+    Camera Controller
+====================================================== */
+
+class CameraController {
 
     constructor() {
 
         this.stream = null;
 
+        this.deviceId = null;
+
+        this.devices = [];
+
+        this.constraints = {
+
+            audio: false,
+
+            video: {
+
+                facingMode: "environment",
+
+                width: {
+                    ideal: APP.CAMERA.WIDTH
+                },
+
+                height: {
+                    ideal: APP.CAMERA.HEIGHT
+                }
+
+            }
+
+        };
+
     }
+
+    /* ==================================================
+        Camera Start
+    ================================================== */
 
     async start() {
 
-        if (!navigator.mediaDevices) {
-
-            throw new Error("Camera APIに対応していません。");
-
-        }
-
         try {
 
-            this.stream = await navigator.mediaDevices.getUserMedia({
+            await this.stop();
 
-                video: {
+            this.stream =
+                await navigator.mediaDevices.getUserMedia(
+                    this.constraints
+                );
 
-                    facingMode: {
-                        ideal: CAMERA.FACING_MODE
-                    },
-
-                    width: {
-                        ideal: CAMERA.WIDTH
-                    },
-
-                    height: {
-                        ideal: CAMERA.HEIGHT
-                    },
-
-                    frameRate: {
-                        ideal: CAMERA.FPS
-                    }
-
-                },
-
-                audio: false
-
-            });
-
-            AppState.stream = this.stream;
-
-            AppState.video.srcObject = this.stream;
-
-            await new Promise(resolve => {
-
-                AppState.video.onloadedmetadata = resolve;
-
-            });
+            AppState.video.srcObject =
+                this.stream;
 
             await AppState.video.play();
 
-            this.resize();
+            await this.waitVideo();
 
-            AppState.cameraReady = true;
+            AppState.stream =
+                this.stream;
 
-            log("Camera Started");
+            AppState.cameraWidth =
+                AppState.video.videoWidth;
+
+            AppState.cameraHeight =
+                AppState.video.videoHeight;
+
+            console.log(
+                "Camera Started",
+                AppState.cameraWidth,
+                AppState.cameraHeight
+            );
+
+            return true;
 
         }
 
         catch (e) {
 
-            error(e);
+            console.error(e);
 
-            throw e;
+            return false;
 
         }
 
     }
 
-    stop() {
+    /* ==================================================
+        Video待機
+    ================================================== */
 
-        if (!this.stream) return;
+    async waitVideo() {
 
-        this.stream.getTracks().forEach(track => {
+        return new Promise(resolve => {
 
-            track.stop();
+            if (
+                AppState.video.readyState >= 2
+            ) {
+
+                resolve();
+
+                return;
+
+            }
+
+            AppState.video.onloadeddata = () => {
+
+                resolve();
+
+            };
 
         });
 
+    }
+
+    /* ==================================================
+        Camera Stop
+    ================================================== */
+
+    async stop() {
+
+        if (!this.stream)
+            return;
+
+        this.stream
+            .getTracks()
+            .forEach(track => {
+
+                track.stop();
+
+            });
+
         this.stream = null;
 
-        AppState.cameraReady = false;
+    }
+        /* ==================================================
+        カメラ一覧取得
+    ================================================== */
 
-        log("Camera Stopped");
+    async enumerate() {
+
+        try {
+
+            const devices =
+                await navigator.mediaDevices.enumerateDevices();
+
+            this.devices =
+                devices.filter(d => d.kind === "videoinput");
+
+            console.log(
+                "Camera Count :",
+                this.devices.length
+            );
+
+            return this.devices;
+
+        }
+
+        catch (e) {
+
+            console.error(e);
+
+            return [];
+
+        }
 
     }
 
-    resize() {
+    /* ==================================================
+        背面カメラ取得
+    ================================================== */
 
-        const video = AppState.video;
+    getBackCamera() {
 
-        const canvas = AppState.canvas;
+        if (this.devices.length === 0)
+            return null;
 
-        canvas.width = video.videoWidth;
+        //------------------------------------------
+        // labelから判定
+        //------------------------------------------
 
-        canvas.height = video.videoHeight;
+        for (const device of this.devices) {
 
-        AppState.width = video.videoWidth;
+            const label =
+                device.label.toLowerCase();
 
-        AppState.height = video.videoHeight;
+            if (
+                label.includes("back") ||
+                label.includes("rear") ||
+                label.includes("environment")
+            ) {
 
-        log("Resolution");
+                return device;
 
-        log(video.videoWidth + " x " + video.videoHeight);
+            }
+
+        }
+
+        //------------------------------------------
+        // 最後のカメラ
+        //------------------------------------------
+
+        return this.devices[
+            this.devices.length - 1
+        ];
 
     }
 
-    getFrame() {
+    /* ==================================================
+        カメラ切替
+    ================================================== */
 
-        return AppState.video;
+    async switchCamera() {
+
+        await this.enumerate();
+
+        const device =
+            this.getBackCamera();
+
+        if (!device)
+            return false;
+
+        this.constraints.video = {
+
+            deviceId: {
+
+                exact: device.deviceId
+
+            }
+
+        };
+
+        return await this.start();
 
     }
 
-    async getDevices() {
+    /* ==================================================
+        Zoom
+    ================================================== */
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
+    async setZoom(value) {
 
-        return devices.filter(device => device.kind === "videoinput");
+        if (!this.stream)
+            return;
+
+        const track =
+            this.stream.getVideoTracks()[0];
+
+        if (!track)
+            return;
+
+        const cap =
+            track.getCapabilities();
+
+        if (!cap.zoom)
+            return;
+
+        value = Math.max(
+            cap.zoom.min,
+            Math.min(
+                cap.zoom.max,
+                value
+            )
+        );
+
+        try {
+
+            await track.applyConstraints({
+
+                advanced: [
+
+                    {
+
+                        zoom: value
+
+                    }
+
+                ]
+
+            });
+
+            console.log(
+                "Zoom :",
+                value
+            );
+
+        }
+
+        catch (e) {
+
+            console.error(e);
+
+        }
+
+    }
+
+    /* ==================================================
+        Focus
+    ================================================== */
+
+    async autoFocus() {
+
+        if (!this.stream)
+            return;
+
+        const track =
+            this.stream.getVideoTracks()[0];
+
+        if (!track)
+            return;
+
+        try {
+
+            await track.applyConstraints({
+
+                advanced: [
+
+                    {
+
+                        focusMode: "continuous"
+
+                    }
+
+                ]
+
+            });
+
+        }
+
+        catch (e) {
+
+            console.warn(
+                "Auto Focus Unsupported"
+            );
+
+        }
+
+    }
+        /* ==================================================
+        タップフォーカス
+    ================================================== */
+
+    async focusAt(x, y) {
+
+        if (!this.stream)
+            return;
+
+        const track = this.stream.getVideoTracks()[0];
+
+        if (!track)
+            return;
+
+        try {
+
+            await track.applyConstraints({
+
+                advanced: [
+
+                    {
+                        focusMode: "continuous"
+                    }
+
+                ]
+
+            });
+
+            console.log(
+                `Focus : (${x}, ${y})`
+            );
+
+        }
+
+        catch (e) {
+
+            console.warn(
+                "Tap Focus Unsupported"
+            );
+
+        }
+
+    }
+
+    /* ==================================================
+        FPS
+    ================================================== */
+
+    getFPS() {
+
+        if (!AppState.video)
+            return 0;
+
+        if (AppState.video.getVideoPlaybackQuality) {
+
+            const q =
+                AppState.video.getVideoPlaybackQuality();
+
+            return q.totalVideoFrames;
+
+        }
+
+        return 0;
+
+    }
+
+    /* ==================================================
+        Camera Info
+    ================================================== */
+
+    getInfo() {
+
+        return {
+
+            width: AppState.cameraWidth,
+
+            height: AppState.cameraHeight,
+
+            deviceId: this.deviceId,
+
+            cameraCount: this.devices.length,
+
+            facingMode:
+                this.constraints.video.facingMode
+
+        };
+
+    }
+
+    /* ==================================================
+        Destroy
+    ================================================== */
+
+    async destroy() {
+
+        await this.stop();
+
+        this.devices = [];
+
+        this.deviceId = null;
 
     }
 
 }
 
-export const camera = new Camera();
+/* ======================================================
+    Singleton
+====================================================== */
+
+export const camera =
+    new CameraController();

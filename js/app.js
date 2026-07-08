@@ -1,8 +1,7 @@
-/// ======================================================
+// ======================================================
 // CAD AR System
-// Version 2.0
+// Version 3.0
 // app.js
-// Debug Enhanced Version
 // ======================================================
 
 "use strict";
@@ -13,8 +12,28 @@
 
 import { APP } from "./config.js";
 import { AppState } from "./state.js";
-import { log as utilLog, error } from "./utils.js";
-import { initializeUI, bindLoadButton, getPartNumber, setStatus } from "./ui.js";
+import { log, error } from "./utils.js";
+
+import {
+
+    initializeUI,
+
+    bindLoadButton,
+
+    bindMarkerCheck,
+
+    bindEnterKey,
+
+    loadLastPartNumber,
+
+    saveLastPartNumber,
+
+    getPartNumber,
+
+    setStatus
+
+} from "./ui.js";
+
 import { createQRCode } from "./qr.js";
 import { camera } from "./camera.js";
 import { dxfLoader } from "./dxf.js";
@@ -22,52 +41,56 @@ import { marker } from "./marker.js";
 import { recognizer } from "./opencv-ar.js";
 
 /* ======================================================
-    画面デバッグログ（強化版）
+    デバッグ出力
 ====================================================== */
 
-function log(msg) {
+function debug(message) {
+
+    console.log("[CAD-AR]", message);
+
     const el = document.getElementById("debug");
+
     if (!el) return;
 
-    const time = new Date().toLocaleTimeString();
-    el.innerHTML += `[${time}] ${msg}<br>`;
+    const t = new Date().toLocaleTimeString();
+
+    el.innerHTML += `[${t}] ${message}<br>`;
+
     el.scrollTop = el.scrollHeight;
 
-    // コンソールにも出す（PC用）
-    console.log(msg);
 }
 
 /* ======================================================
     OpenCV待機
 ====================================================== */
 
-function waitForOpenCV() {
+async function waitForOpenCV() {
 
-    log("OpenCV待機開始");
+    debug("OpenCV Loading...");
 
     return new Promise(resolve => {
 
-        const check = () => {
+        const timer = setInterval(() => {
 
-            if (window.cv && cv.Mat) {
+            if (
+                window.cv &&
+                cv.getBuildInformation &&
+                cv.Mat
+            ) {
 
-                log("cv検出OK");
+                clearInterval(timer);
 
-                cv.onRuntimeInitialized = () => {
-                    log("OpenCV Runtime Initialized");
-                    resolve();
-                };
+                debug("OpenCV Ready");
 
-                return;
+                resolve();
+
             }
 
-            requestAnimationFrame(check);
-        };
+        }, 100);
 
-        check();
     });
-}
 
+}
 /* ======================================================
     CAD AR Application
 ====================================================== */
@@ -76,9 +99,11 @@ class CADARApplication {
 
     constructor() {
 
-        log("=== APP START ===");
-        log(APP.NAME);
-        log(APP.VERSION);
+        debug("====================================");
+        debug(APP.NAME);
+        debug("Version : " + APP.VERSION);
+        debug("====================================");
+
     }
 
     /* ==================================================
@@ -89,7 +114,7 @@ class CADARApplication {
 
         try {
 
-            log("① initialize start");
+            debug("Application Initialize");
 
             //------------------------------------------
             // DOM取得
@@ -98,259 +123,384 @@ class CADARApplication {
             AppState.video = document.getElementById("video");
             AppState.canvas = document.getElementById("canvas");
 
-            if (!AppState.video || !AppState.canvas) {
-                log("❌ video/canvas が見つからない");
-            }
+            if (!AppState.video)
+                throw new Error("video element not found");
+
+            if (!AppState.canvas)
+                throw new Error("canvas element not found");
 
             AppState.ctx = AppState.canvas.getContext("2d");
 
-            log("② DOM OK");
+            debug("DOM OK");
 
             //------------------------------------------
-            // UI初期化
+            // UI
             //------------------------------------------
 
             initializeUI();
-            log("③ UI initialized");
+
+            loadLastPartNumber();
+
+            bindEnterKey(() => {
+
+                this.loadPart();
+
+            });
+
+            bindMarkerCheck((visible) => {
+
+                marker.show(visible);
+
+            });
+            bindLoadButton(() => {
+
+                this.loadPart();
+
+            });
+
+            debug("UI OK");
 
             //------------------------------------------
-            // QR生成
+            // QR
             //------------------------------------------
 
             createQRCode();
-            log("④ QR created");
+
+            debug("QR OK");
 
             //------------------------------------------
-            // ボタンイベント
-            //------------------------------------------
-
-            bindLoadButton(() => {
-                log("LOAD button clicked");
-                this.loadPart();
-            });
-
-            //------------------------------------------
-            // カメラ起動
+            // Camera
             //------------------------------------------
 
             setStatus("カメラ起動中");
-            log("⑤ camera start");
 
             await camera.start();
-            // カメラサイズをCanvasへ反映
-             AppState.canvas.width = AppState.video.videoWidth;
-             AppState.canvas.height = AppState.video.videoHeight;
 
-             log(
-                  `Canvas ${AppState.canvas.width} x ${AppState.canvas.height}`
-             );
-            log("⑥ camera ready");
+            await camera.enumerate();
+
+            await camera.autoFocus();
+
+            debug(
+                "Camera : "
+                + AppState.video.videoWidth
+                + " x "
+                + AppState.video.videoHeight
+            );
 
             //------------------------------------------
-            // OpenCV起動待ち
+            // Canvasサイズ
+            //------------------------------------------
+
+            AppState.canvas.width = AppState.video.videoWidth;
+            AppState.canvas.height = AppState.video.videoHeight;
+
+            debug(
+                "Canvas : "
+                + AppState.canvas.width
+                + " x "
+                + AppState.canvas.height
+            );
+
+            //------------------------------------------
+            // OpenCV
             //------------------------------------------
 
             setStatus("OpenCV準備中");
 
             await waitForOpenCV();
 
-            AppState.cvReady = true;
-
             recognizer.initialize();
 
-            log("⑦ OpenCV ready");
+            AppState.cvReady = true;
+
+            debug("Recognizer OK");
 
             //------------------------------------------
-            // ARループ開始
+            // AR Loop
             //------------------------------------------
 
             this.startARLoop();
 
             //------------------------------------------
-            // 完了
+            // Finish
             //------------------------------------------
 
             AppState.initialized = true;
 
             setStatus("準備完了");
 
-            log("=== APP READY ===");
+            debug("Application Ready");
 
         }
 
         catch (e) {
 
+            console.error(e);
+
             error(e);
 
-            log("❌ INIT ERROR: " + e.message);
+            debug("INIT ERROR : " + e.message);
 
             setStatus("初期化エラー");
 
         }
 
     }
-
     /* ==================================================
-        型番読込
+        部品読込み
     ================================================== */
 
     async loadPart() {
 
-        log("⑧ loadPart start");
-
-        const partNumber = getPartNumber();
-
-        log("型番: " + partNumber);
-
-        if (!partNumber) {
-            log("❌ 型番なし");
-            alert("型番を入力してください。");
-            return;
-        }
-
         try {
 
-            setStatus("図面読込中");
+            const partNo = getPartNumber();
 
-            const data = await dxfLoader.load(partNumber);
+            if (!partNo) {
 
-            log("DXF load OK");
+                alert("部品番号を入力してください。");
+                return;
 
-            AppState.partNumber = partNumber;
-            AppState.holeList = data.holes;
+            }
 
-            log("穴数: " + (AppState.holeList ? AppState.holeList.length : 0));
+            debug("------------------------------------");
+            debug("Loading Part : " + partNo);
 
-            marker.initialize();
+            setStatus("CADデータ読込中");
 
-            await this.loadReferenceImage(partNumber);
+            //------------------------------------------
+            // JSON読込
+            //------------------------------------------
 
-            AppState.recognizing = true;
+            const ok = await dxfLoader.load(partNo);
 
-            setStatus("AR開始");
+            if (!ok) {
 
-            log("=== AR READY ===");
+                throw new Error("JSONの読み込みに失敗しました");
+
+            }
+
+            //------------------------------------------
+            // マーカー生成
+            //------------------------------------------
+
+            marker.clear();
+
+            marker.load(dxfLoader.getHoles());
+
+            AppState.partLoaded = true;
+
+            AppState.partNo = partNo;
+
+            AppState.holes = dxfLoader.getHoles();
+
+            AppState.outline = dxfLoader.getOutline();
+
+            AppState.bounds = dxfLoader.getBounds();
+
+            debug("Hole Count : " + marker.count());
+
+            //------------------------------------------
+            // 輪郭情報
+            //------------------------------------------
+
+            if (dxfLoader.getOutline) {
+
+                const outline = dxfLoader.getOutline();
+
+                debug("Outline : " + outline.length);
+
+            }
+
+            setStatus("CAD読込完了");
+
+            debug("Part Ready");
 
         }
 
         catch (e) {
 
+            console.error(e);
+
             error(e);
 
-            log("❌ DXF ERROR: " + e);
+            debug("LOAD ERROR : " + e.message);
 
-            setStatus("読込エラー");
+            setStatus("CAD読込失敗");
 
         }
-
+        saveLastPartNumber();
     }
 
     /* ==================================================
-        reference画像ロード
-    ================================================== */
-
-    async loadReferenceImage(partNumber) {
-
-        log("reference load start");
-
-        return new Promise((resolve, reject) => {
-
-            const img = new Image();
-
-            img.src = `parts/${partNumber}/reference.jpg`;
-
-            img.onload = () => {
-
-                log("reference loaded");
-
-                const mat = cv.imread(img);
-
-                AppState.referenceMat = mat;
-
-                resolve();
-            };
-
-            img.onerror = () => {
-
-                log("❌ reference.jpg not found");
-
-                reject("reference not found");
-            };
-
-        });
-
-    }
-
-    /* ==================================================
-        ARループ
+        AR描画開始
     ================================================== */
 
     startARLoop() {
 
-        log("AR loop start");
-
-        const video = AppState.video;
-        const ctx = AppState.ctx;
+        debug("AR Loop Start");
 
         const loop = () => {
 
-            if (AppState.recognizing) {
+            if (!AppState.initialized) {
 
-                // カメラ映像をCanvasへ描画
-                ctx.drawImage(
-                    video,
-                    0,
-                    0,
-                    AppState.canvas.width,
-                    AppState.canvas.height
-                );
+                requestAnimationFrame(loop);
+                return;
 
-                if (AppState.referenceMat) {
+            }
 
-                 // CanvasからOpenCVへ
-                    const frameMat = cv.imread(AppState.canvas);
+            //------------------------------------------
+            // カメラ画像描画
+            //------------------------------------------
 
-                    recognizer.process(frameMat, AppState.referenceMat);
+            AppState.ctx.clearRect(
+                0,
+                0,
+                AppState.canvas.width,
+                AppState.canvas.height
+            );
 
-                    frameMat.delete();
+            AppState.ctx.drawImage(
+                AppState.video,
+                0,
+                0,
+                AppState.canvas.width,
+                AppState.canvas.height
+            );
+
+
+
+            //------------------------------------------
+            // OpenCV認識
+            //------------------------------------------
+
+            if (
+                AppState.cvReady &&
+                AppState.partLoaded
+            ) {
+
+                try {
+
+                    recognizer.detect();
+
+                    if (recognizer.isDetected()) {
+
+                        marker.draw(
+                            AppState.ctx,
+                            recognizer.getTransform()
+                        );
+
+                    }
+
+                    recognizer.drawDebug(
+                        AppState.ctx
+                    );
+
                 }
 
-                
+                catch (e) {
 
-                const H = AppState.homography;
+                    console.error(e);
 
-                if (H && AppState.holeList && AppState.holeList.length > 0) {
-
-                    marker.drawAR(AppState.holeList, H);
-
-                } else {
-                    // 軽い監視ログ（連打しない）
-                    if (!this._warned) {
-                        log("⚠ homography or holeList not ready");
-                        this._warned = true;
-                    }
                 }
 
             }
 
             requestAnimationFrame(loop);
+
         };
 
-        loop();
+        requestAnimationFrame(loop);
+
     }
 
 }
+/* ==================================================
+    Window Resize
+================================================== */
 
-/* ======================================================
-    起動
-====================================================== */
+function resizeCanvas() {
+
+    if (!AppState.video || !AppState.canvas) return;
+
+    const w = AppState.video.videoWidth;
+    const h = AppState.video.videoHeight;
+
+    if (w === 0 || h === 0) return;
+
+    AppState.canvas.width = w;
+    AppState.canvas.height = h;
+
+    debug(`Canvas Resize : ${w} x ${h}`);
+
+}
+
+/* ==================================================
+    Visibility
+================================================== */
+
+document.addEventListener("visibilitychange", () => {
+
+    if (document.hidden) {
+
+        debug("Application Pause");
+
+    } else {
+
+        debug("Application Resume");
+
+    }
+
+});
+
+/* ==================================================
+    Resize Event
+================================================== */
+
+window.addEventListener("resize", () => {
+
+    resizeCanvas();
+
+});
+
+/* ==================================================
+    Error Handler
+================================================== */
+
+window.addEventListener("error", (event) => {
+
+    console.error(event.error);
+
+    debug("ERROR : " + event.message);
+
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+
+    console.error(event.reason);
+
+    debug("Promise ERROR : " + event.reason);
+
+});
+
+/* ==================================================
+    Start
+================================================== */
 
 window.addEventListener("DOMContentLoaded", async () => {
 
-    log("DOM loaded");
+    debug("DOM Ready");
 
     const app = new CADARApplication();
+
+    AppState.app = app;
 
     await app.initialize();
 
 });
+
+/* ==================================================
+    Export
+================================================== */
+
+export default CADARApplication;

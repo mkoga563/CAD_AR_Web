@@ -1,238 +1,191 @@
 // ======================================================
 // CAD AR System
-// Version 2.0
+// Version 3.0
 // state.js
-// アプリケーション状態管理
 // ======================================================
 
 "use strict";
 
-/**
- * アプリケーション全体の状態
- *
- * 他のモジュールはこのオブジェクト経由で
- * データを共有します。
- */
+/* ======================================================
+    Application State
+====================================================== */
+
 export const AppState = {
 
-    /* ==========================================
-       アプリ状態
-    ========================================== */
+    //--------------------------------------------------
+    // App
+    //--------------------------------------------------
 
     initialized: false,
+    cvReady: false,
+    partLoaded: false,
 
-    busy: false,
+    app: null,
 
-    error: false,
-
-    /* ==========================================
-       型番
-    ========================================== */
-
-    partNumber: "",
-
-    /* ==========================================
-       カメラ
-    ========================================== */
-
-    cameraReady: false,
-
-    stream: null,
+    //--------------------------------------------------
+    // Camera
+    //--------------------------------------------------
 
     video: null,
+    stream: null,
+
+    facingMode: "environment",
+
+    cameraWidth: 0,
+    cameraHeight: 0,
+
+    //--------------------------------------------------
+    // Canvas
+    //--------------------------------------------------
 
     canvas: null,
-
     ctx: null,
 
-    width: 0,
+    //--------------------------------------------------
+    // CAD Data
+    //--------------------------------------------------
 
-    height: 0,
+    partNo: "",
 
-    /* ==========================================
-       FPS
-    ========================================== */
+    holes: [],
+    outline: [],
+
+    bounds: null,
+
+    //--------------------------------------------------
+    // AR
+    //--------------------------------------------------
+
+    transform: {
+
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0
+
+    },
+
+    detected: false,
+
+    //--------------------------------------------------
+    // Debug
+    //--------------------------------------------------
+
+    debug: true,
 
     fps: 0,
 
     frameCount: 0,
 
-    lastFrameTime: 0,
+    lastTime: performance.now(),
 
-    /* ==========================================
-       DXF
-    ========================================== */
+    //--------------------------------------------------
+    // Status
+    //--------------------------------------------------
 
-    dxfLoaded: false,
+    status: "",
 
-    dxfData: null,
+    setStatus(text) {
 
-    holeList: [],
+        this.status = text;
 
-    /* ==========================================
-       基準画像
-    ========================================== */
+    },
 
-    referenceImage: null,
+    //--------------------------------------------------
+    // FPS
+    //--------------------------------------------------
 
-    referenceMat: null,
+    updateFPS() {
 
-    /* ==========================================
-       OpenCV
-    ========================================== */
+        this.frameCount++;
 
-    cvReady: false,
+        const now = performance.now();
 
-    recognizing: false,
+        if (now - this.lastTime >= 1000) {
 
-    homography: null,
+            this.fps = this.frameCount;
 
-    keypointsScene: null,
+            this.frameCount = 0;
 
-    keypointsReference: null,
+            this.lastTime = now;
 
-    matches: [],
+        }
 
-    /* ==========================================
-       描画
-    ========================================== */
+    },
 
-    markerVisible: true,
+    //--------------------------------------------------
+    // Transform
+    //--------------------------------------------------
 
-    drawCount: 0
+    setTransform(transform) {
+
+        this.transform = {
+
+            x: transform.x,
+
+            y: transform.y,
+
+            scale: transform.scale,
+
+            rotation: transform.rotation
+
+        };
+
+    },
+
+    //--------------------------------------------------
+    // Reset
+    //--------------------------------------------------
+
+    reset() {
+
+        this.partLoaded = false;
+
+        this.detected = false;
+
+        this.partNo = "";
+
+        this.holes = [];
+
+        this.outline = [];
+
+        this.bounds = null;
+
+        this.transform = {
+
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0
+
+        };
+
+    },
+
+    //--------------------------------------------------
+    // Debug表示
+    //--------------------------------------------------
+
+    print() {
+
+        console.group("AppState");
+
+        console.log("Initialized :", this.initialized);
+
+        console.log("CV Ready :", this.cvReady);
+
+        console.log("Part :", this.partNo);
+
+        console.log("Loaded :", this.partLoaded);
+
+        console.log("Detected :", this.detected);
+
+        console.log("FPS :", this.fps);
+
+        console.log("Transform :", this.transform);
+
+        console.groupEnd();
+
+    }
 
 };
-
-/* ======================================================
-   初期化
-====================================================== */
-
-export function resetState() {
-
-    AppState.busy = false;
-
-    AppState.error = false;
-
-    AppState.partNumber = "";
-
-    AppState.cameraReady = false;
-
-    AppState.stream = null;
-
-    AppState.video = null;
-
-    AppState.canvas = null;
-
-    AppState.ctx = null;
-
-    AppState.width = 0;
-
-    AppState.height = 0;
-
-    AppState.fps = 0;
-
-    AppState.frameCount = 0;
-
-    AppState.lastFrameTime = 0;
-
-    AppState.dxfLoaded = false;
-
-    AppState.dxfData = null;
-
-    AppState.holeList = [];
-
-    AppState.referenceImage = null;
-
-    AppState.referenceMat = null;
-
-    AppState.cvReady = false;
-
-    AppState.recognizing = false;
-
-    AppState.homography = null;
-
-    AppState.keypointsScene = null;
-
-    AppState.keypointsReference = null;
-
-    AppState.matches = [];
-
-    AppState.markerVisible = true;
-
-    AppState.drawCount = 0;
-
-}
-
-/* ======================================================
-   状態取得
-====================================================== */
-
-export function getState() {
-
-    return AppState;
-
-}
-
-/* ======================================================
-   型番
-====================================================== */
-
-export function setPartNumber(partNumber) {
-
-    AppState.partNumber = partNumber;
-
-}
-
-export function getPartNumber() {
-
-    return AppState.partNumber;
-
-}
-
-/* ======================================================
-   FPS
-====================================================== */
-
-export function setFPS(fps) {
-
-    AppState.fps = fps;
-
-}
-
-export function getFPS() {
-
-    return AppState.fps;
-
-}
-
-/* ======================================================
-   ホールデータ
-====================================================== */
-
-export function setHoleList(holeList) {
-
-    AppState.holeList = holeList;
-
-}
-
-export function getHoleList() {
-
-    return AppState.holeList;
-
-}
-
-/* ======================================================
-   認識状態
-====================================================== */
-
-export function setRecognizing(value) {
-
-    AppState.recognizing = value;
-
-}
-
-export function isRecognizing() {
-
-    return AppState.recognizing;
-
-}
