@@ -6,8 +6,8 @@
 
 "use strict";
 
-import { APP } from "./config.js";
-import { AppState } from "./state.js";
+import { APP } from "./js/config.js";
+import { AppState } from "./js/state.js";
 
 /* ======================================================
     OpenCV Recognizer

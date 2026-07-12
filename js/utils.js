@@ -7,7 +7,7 @@
 
 "use strict";
 
-import { DEBUG } from "./config.js";
+import { DEBUG } from "./js/config.js";
 
 /* ======================================================
    ログ
