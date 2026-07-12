@@ -6,7 +6,7 @@
 
 "use strict";
 
-import { APP } from "./js/config.js";
+import { APP } from "./config.js";
 /* ======================================================
     Marker Renderer
 ====================================================== */

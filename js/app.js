@@ -10,9 +10,9 @@
     Import
 ====================================================== */
 
-import { APP } from "./js/config.js";
-import { AppState } from "./js/state.js";
-import { log, error } from "./js/utils.js";
+import { APP } from "./config.js";
+import { AppState } from "./state.js";
+import { log, error } from "./utils.js";
 
 import {
 
@@ -34,11 +34,11 @@ import {
 
 } from "./ui.js";
 
-import { createQRCode } from "./js/qr.js";
-import { camera } from "./js/camera.js";
-import { dxfLoader } from "./js/dxf.js";
-import { marker } from "./js/marker.js";
-import { recognizer } from "./js/opencv-ar.js";
+import { createQRCode } from "./qr.js";
+import { camera } from "./camera.js";
+import { dxfLoader } from "./dxf.js";
+import { marker } from "./marker.js";
+import { recognizer } from "./opencv-ar.js";
 
 /* ======================================================
     デバッグ出力

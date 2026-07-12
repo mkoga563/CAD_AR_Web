@@ -6,7 +6,7 @@
 
 "use strict";
 
-import { AppState } from "./js/state.js";
+import { AppState } from "./state.js";
 
 /* ======================================================
     UI Element

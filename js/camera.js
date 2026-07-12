@@ -6,9 +6,9 @@
 
 "use strict";
 
-import { APP } from "./js/config.js";
+import { APP } from "./config.js";
 
-import { AppState } from "./js/state.js";
+import { AppState } from "./state.js";
 
 /* ======================================================
     Camera Controller
