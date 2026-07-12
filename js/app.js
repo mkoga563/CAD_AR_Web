@@ -369,7 +369,7 @@ class CADARApplication {
             //------------------------------------------
             // OpenCV認識
             //------------------------------------------
-
+            recognizer.drawDebug(AppState.ctx);
             if (
                 AppState.cvReady &&
                 AppState.partLoaded
@@ -388,9 +388,7 @@ class CADARApplication {
 
                     }
 
-                    recognizer.drawDebug(
-                        AppState.ctx
-                    );
+                    
 
                 }
 
