@@ -187,8 +187,10 @@ class CADARApplication {
             // Canvasサイズ
             //------------------------------------------
 
-            AppState.canvas.width = AppState.video.videoWidth;
-            AppState.canvas.height = AppState.video.videoHeight;
+            const rect = AppState.video.getBoundingClientRect();
+
+            AppState.canvas.width = rect.width;
+            AppState.canvas.height = rect.height;
 
             debug(
                 "Canvas : "
@@ -356,13 +358,18 @@ class CADARApplication {
                 AppState.canvas.height
             );
 
-            AppState.ctx.drawImage(
-                AppState.video,
-                0,
-                0,
-                AppState.canvas.width,
-                AppState.canvas.height
-            );
+            function resizeCanvas() {
+
+                if (!AppState.video || !AppState.canvas) return;
+
+                const rect = AppState.video.getBoundingClientRect();
+
+                AppState.canvas.width = rect.width;
+                AppState.canvas.height = rect.height;
+
+                debug(`Canvas Resize : ${rect.width} x ${rect.height}`);
+
+            }
 
 
 
@@ -388,7 +395,7 @@ class CADARApplication {
 
                     }
 
-                    
+
 
                 }
 
