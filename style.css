@@ -1,299 +1,135 @@
 /* =====================================================
    CAD AR System
-   Version 2.0
+   Version 3.1
    style.css
 ===================================================== */
 
-/* ---------- Reset ---------- */
+/* =====================================================
+   Reset
+===================================================== */
 
 *,
 *::before,
 *::after{
+
     margin:0;
     padding:0;
+
     box-sizing:border-box;
+
 }
 
-/* ---------- Root ---------- */
+html,
+body{
+
+    width:100%;
+    height:100%;
+
+    overflow:hidden;
+
+}
+
+/* =====================================================
+   Root
+===================================================== */
 
 :root{
 
-    --main-color:#1976D2;
-    --main-dark:#125EA8;
-    --success:#2E7D32;
-    --warning:#EF6C00;
-    --danger:#C62828;
+    --bg:#111111;
 
-    --bg:#F4F6F9;
+    --panel:rgba(0,0,0,.55);
 
-    --panel:#FFFFFF;
+    --panel-dark:rgba(0,0,0,.75);
 
-    --border:#D5D5D5;
+    --border:#3d3d3d;
 
-    --text:#333333;
+    --text:#ffffff;
 
-    --shadow:0 3px 8px rgba(0,0,0,.15);
+    --accent:#00C8FF;
 
-    --radius:10px;
+    --success:#00E676;
+
+    --warning:#FFC107;
+
+    --danger:#FF5252;
+
+    --radius:8px;
 
 }
 
-/* ---------- Body ---------- */
+/* =====================================================
+   Body
+===================================================== */
 
 body{
-
-    font-family:
-        "Yu Gothic",
-        "Meiryo",
-        sans-serif;
 
     background:var(--bg);
 
     color:var(--text);
 
-    min-height:100vh;
+    font-family:
+
+        "Segoe UI",
+
+        "Yu Gothic UI",
+
+        "Meiryo",
+
+        sans-serif;
 
 }
 
-/* ---------- Header ---------- */
-
-#header{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    padding:15px 20px;
-
-    background:var(--main-color);
-
-    color:white;
-
-    box-shadow:var(--shadow);
-
-}
-
-#titleArea{
-
-    display:flex;
-
-    flex-direction:column;
-
-}
-
-#titleArea h1{
-
-    font-size:32px;
-
-}
-
-#version{
-
-    font-size:14px;
-
-    opacity:.9;
-
-}
-
-/* ---------- QR ---------- */
-
-#qrcode{
-
-    width:110px;
-
-    height:110px;
-
-    background:white;
-
-    border-radius:8px;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-}
-
-/* ---------- Main ---------- */
-
-#main{
-
-    width:min(1400px,95%);
-
-    margin:20px auto;
-
-}
-
-/* ---------- Control ---------- */
-
-#controlPanel{
-
-    display:flex;
-
-    gap:15px;
-
-    align-items:center;
-
-    flex-wrap:wrap;
-
-    background:var(--panel);
-
-    padding:20px;
-
-    border-radius:var(--radius);
-
-    box-shadow:var(--shadow);
-
-    margin-bottom:20px;
-
-}
-
-#controlPanel label{
-
-    font-size:20px;
-
-    font-weight:bold;
-
-}
-
-#partNo{
-
-    width:260px;
-
-    padding:12px;
-
-    font-size:20px;
-
-    border:1px solid var(--border);
-
-    border-radius:8px;
-
-    outline:none;
-
-}
-
-#partNo:focus{
-
-    border:2px solid var(--main-color);
-
-}
-
-#loadBtn{
-
-    padding:12px 30px;
-
-    font-size:18px;
-
-    border:none;
-
-    border-radius:8px;
-
-    cursor:pointer;
-
-    color:white;
-
-    background:var(--main-color);
-
-    transition:.2s;
-
-}
-
-#loadBtn:hover{
-
-    background:var(--main-dark);
-
-}
-
-#loadBtn:active{
-
-    transform:scale(.97);
-
-}
-
-/* ---------- Status ---------- */
-
-#statusPanel{
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
-
-    background:var(--panel);
-
-    margin-bottom:20px;
-
-    padding:15px 20px;
-
-    border-radius:var(--radius);
-
-    box-shadow:var(--shadow);
-
-    font-size:18px;
-
-}
-
-#statusText{
-
-    color:var(--success);
-
-    font-weight:bold;
-
-}
-
-#fps{
-
-    font-weight:bold;
-
-}
-
-/* ---------- Camera ---------- */
-
-#cameraArea{
+/* =====================================================
+   App
+===================================================== */
+
+#app{
 
     position:relative;
 
-    width:100%;
+    width:100vw;
 
-    aspect-ratio:16 / 9;
-
-    background:black;
-
-    border-radius:var(--radius);
+    height:100vh;
 
     overflow:hidden;
 
-    box-shadow:var(--shadow);
+    background:#000;
 
 }
 
-/* ---------- Video ---------- */
+/* =====================================================
+   Camera
+===================================================== */
 
 #video{
+
+    position:absolute;
+
+    left:0;
+
+    top:0;
 
     width:100%;
 
     height:100%;
 
-    object-fit:contain;
+    object-fit:cover;
 
-    display:block;
+    z-index:1;
 
 }
 
-/* ---------- Canvas ---------- */
+/* =====================================================
+   Canvas
+===================================================== */
 
 #canvas{
 
     position:absolute;
 
-    top:0;
-
     left:0;
+
+    top:0;
 
     width:100%;
 
@@ -301,35 +137,495 @@ body{
 
     pointer-events:none;
 
+    z-index:2;
+
 }
 
-/* ---------- Footer ---------- */
+/* =====================================================
+   Top Bar
+===================================================== */
 
-#footer{
+#topBar{
 
-    margin:30px 0;
+    position:absolute;
+
+    left:12px;
+
+    top:12px;
+
+    z-index:20;
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:10px;
+
+    background:var(--panel);
+
+    border-radius:var(--radius);
+
+    backdrop-filter:blur(6px);
+
+}
+
+/* =====================================================
+   Input
+===================================================== */
+
+#partNo{
+
+    width:180px;
+
+    height:42px;
+
+    padding:0 12px;
+
+    font-size:18px;
+
+    border:none;
+
+    border-radius:6px;
+
+    outline:none;
+
+}
+
+/* =====================================================
+   Button
+===================================================== */
+
+button{
+
+    height:42px;
+
+    padding:0 18px;
+
+    border:none;
+
+    border-radius:6px;
+
+    background:#1976D2;
+
+    color:white;
+
+    font-size:17px;
+
+    cursor:pointer;
+
+    transition:.15s;
+
+}
+
+button:hover{
+
+    background:#1565C0;
+
+}
+
+button:active{
+
+    transform:scale(.97);
+
+}
+
+/* =====================================================
+   Checkbox
+===================================================== */
+
+label{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:6px;
+
+    font-size:17px;
+
+}
+
+input[type="checkbox"]{
+
+    width:18px;
+
+    height:18px;
+
+}
+
+/* =====================================================
+   Status
+===================================================== */
+
+#status{
+
+    position:absolute;
+
+    left:12px;
+
+    bottom:12px;
+
+    z-index:20;
+
+    min-width:220px;
+
+    padding:10px 18px;
+
+    background:var(--panel);
+
+    border-radius:var(--radius);
+
+    font-size:18px;
+
+    font-weight:bold;
+
+}
+/* =====================================================
+   QR Code
+===================================================== */
+
+#qrcode{
+
+    position:absolute;
+
+    right:15px;
+
+    bottom:15px;
+
+    z-index:20;
+
+    width:110px;
+
+    height:110px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#ffffff;
+
+    border-radius:10px;
+
+    padding:8px;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.35);
+
+}
+
+/* =====================================================
+   FPS
+===================================================== */
+
+#fps{
+
+    position:absolute;
+
+    right:15px;
+
+    top:15px;
+
+    z-index:20;
+
+    min-width:90px;
 
     text-align:center;
 
-    color:#666;
+    background:rgba(0,0,0,.60);
+
+    padding:8px 12px;
+
+    border-radius:8px;
+
+    color:#00FF66;
+
+    font-size:16px;
+
+    font-weight:bold;
+
+}
+
+/* =====================================================
+   Version
+===================================================== */
+
+#version{
+
+    position:absolute;
+
+    right:15px;
+
+    top:58px;
+
+    z-index:20;
+
+    background:rgba(0,0,0,.60);
+
+    padding:6px 12px;
+
+    border-radius:8px;
+
+    color:#ffffff;
 
     font-size:14px;
 
 }
 
-/* ---------- Tablet ---------- */
+/* =====================================================
+   Debug Window
+===================================================== */
 
-@media (max-width:900px){
+#debug{
 
-    #header{
+    position:absolute;
 
-        flex-direction:column;
+    left:12px;
 
-        gap:15px;
+    right:12px;
+
+    bottom:65px;
+
+    max-height:180px;
+
+    overflow-y:auto;
+
+    display:none;
+
+    z-index:25;
+
+    background:rgba(0,0,0,.78);
+
+    color:#00FF66;
+
+    border-radius:8px;
+
+    padding:10px;
+
+    font-family:Consolas,monospace;
+
+    font-size:12px;
+
+    line-height:1.5;
+
+}
+
+/* =====================================================
+   Loading Overlay
+===================================================== */
+
+.overlay{
+
+    position:absolute;
+
+    inset:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:rgba(0,0,0,.80);
+
+    z-index:100;
+
+}
+
+.overlayBox{
+
+    text-align:center;
+
+    color:white;
+
+}
+
+.spinner{
+
+    width:60px;
+
+    height:60px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    border:6px solid #555;
+
+    border-top:6px solid #00C8FF;
+
+    animation:spin 1s linear infinite;
+
+}
+
+@keyframes spin{
+
+    from{
+
+        transform:rotate(0deg);
 
     }
 
-    #controlPanel{
+    to{
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+/* =====================================================
+   Error Dialog
+===================================================== */
+
+.dialog{
+
+    position:absolute;
+
+    inset:0;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:rgba(0,0,0,.60);
+
+    z-index:200;
+
+}
+
+.dialogBox{
+
+    width:min(420px,90vw);
+
+    background:#ffffff;
+
+    color:#222222;
+
+    border-radius:10px;
+
+    padding:25px;
+
+    text-align:center;
+
+}
+
+.dialogBox h2{
+
+    margin-bottom:20px;
+
+}
+
+.dialogBox button{
+
+    margin-top:20px;
+
+}
+
+/* =====================================================
+   Message
+===================================================== */
+
+#permissionMessage,
+#opencvStatus{
+
+    position:absolute;
+
+    left:50%;
+
+    top:90px;
+
+    transform:translateX(-50%);
+
+    z-index:90;
+
+    padding:12px 20px;
+
+    border-radius:8px;
+
+    background:#FFEB3B;
+
+    color:#000000;
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
+
+}
+
+/* =====================================================
+   Tablet
+===================================================== */
+
+@media (max-width:1024px){
+
+    #topBar{
+
+        left:8px;
+
+        right:8px;
+
+        top:8px;
+
+        gap:8px;
+
+        padding:8px;
+
+    }
+
+    #partNo{
+
+        width:150px;
+
+        font-size:16px;
+
+    }
+
+    button{
+
+        height:38px;
+
+        font-size:15px;
+
+        padding:0 14px;
+
+    }
+
+    #status{
+
+        left:8px;
+
+        bottom:8px;
+
+        font-size:16px;
+
+    }
+
+    #qrcode{
+
+        width:90px;
+
+        height:90px;
+
+    }
+
+}
+
+/* =====================================================
+   Smartphone
+===================================================== */
+
+@media (max-width:700px){
+
+    #topBar{
 
         flex-direction:column;
 
@@ -343,31 +639,21 @@ body{
 
     }
 
-    #loadBtn{
+    button{
 
         width:100%;
 
     }
 
-    #statusPanel{
+    label{
 
-        flex-direction:column;
-
-        gap:10px;
-
-        align-items:flex-start;
+        justify-content:center;
 
     }
 
-}
+    #fps{
 
-/* ---------- Smartphone ---------- */
-
-@media (max-width:600px){
-
-    #titleArea h1{
-
-        font-size:24px;
+        font-size:13px;
 
     }
 
@@ -377,23 +663,38 @@ body{
 
     }
 
-    #qrcode{
+    #status{
 
-        width:90px;
+        right:8px;
 
-        height:90px;
+        min-width:auto;
 
-    }
+        text-align:center;
 
-    #controlPanel{
-
-        padding:15px;
+        font-size:15px;
 
     }
 
-    #statusPanel{
+    #debug{
 
-        padding:15px;
+        max-height:130px;
+
+    }
+
+}
+
+/* =====================================================
+   Landscape Tablet
+===================================================== */
+
+@media (orientation:landscape){
+
+    #video,
+    #canvas{
+
+        width:100vw;
+
+        height:100vh;
 
     }
 
