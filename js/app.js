@@ -198,13 +198,13 @@ class CADARApplication {
                 + " x "
                 + AppState.canvas.height
             );
-            const rect = AppState.canvas.getBoundingClientRect();
+            const canvasRect = AppState.canvas.getBoundingClientRect();
 
             alert(
                 "Canvas\n" +
                 "width=" + AppState.canvas.width +
                 "\nheight=" + AppState.canvas.height +
-                "\n表示=" + rect.width + "×" + rect.height
+                "\n表示=" + canvasRect.width + "×" + canvasRect.height
             );
             //------------------------------------------
             // OpenCV
