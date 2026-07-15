@@ -1,490 +1,993 @@
 // ======================================================
 // CAD AR System
-// Version 3.0
+// Version 4.0
 // marker.js
+// Part 1
+// 描画エンジン
 // ======================================================
 
 "use strict";
 
-import { APP } from "./config.js";
+import { AppState } from "./state.js";
+
 /* ======================================================
-    Marker Renderer
+    Marker
 ====================================================== */
 
-class MarkerRenderer {
+export const marker = {
 
-    constructor() {
+    //--------------------------------------------------
+    // 表示
+    //--------------------------------------------------
 
-        this.holes = [];
-        this.outline = [];
+    visible: true,
 
-        this.visible = true;
+    showOutline: true,
 
-        this.markerRadius =
-            APP.AR.MARKER_RADIUS;
+    showHoleNumber: false,
 
-        this.originX = 0;
-        this.originY = 0;
+    opacity: 1.0,
 
-    }
+    //--------------------------------------------------
+    // 色
+    //--------------------------------------------------
+
+    color:{
+
+        outline:"#00FFFF",
+
+        M3:"#00FF00",
+
+        M4:"#FFFF00",
+
+        M5:"#FF4040",
+
+        other:"#FFFFFF"
+
+    },
+
+    //--------------------------------------------------
+    // サイズ
+    //--------------------------------------------------
+
+    holeRadius:8,
+
+    lineWidth:2,
+
+    font:"16px Arial",
 
     /* ==================================================
-        初期化
+        Draw
     ================================================== */
 
-    clear() {
+    draw(){
 
-        this.holes = [];
-        this.outline = [];
+        if(!AppState.ctx) return;
 
-    }
+        if(!this.visible) return;
 
-    /* ==================================================
-        CADデータ読込
-    ================================================== */
+        if(!AppState.jsonLoaded) return;
 
-    load(data) {
+        const ctx=AppState.ctx;
 
-        this.clear();
-
-        if (!data)
-            return;
-
-        if (Array.isArray(data)) {
-
-            this.holes = data;
-
-        }
-        else {
-
-            this.holes = data.holes || [];
-            this.outline = data.outline || [];
-
-        }
-        //------------------------------------------
-        // CAD原点取得
-        //------------------------------------------
-
-        if (this.outline.length > 0) {
-
-            let minX = Number.MAX_VALUE;
-            let minY = Number.MAX_VALUE;
-
-            for (const p of this.outline) {
-
-                if (p.x < minX) minX = p.x;
-                if (p.y < minY) minY = p.y;
-
-            }
-
-            this.originX = minX;
-            this.originY = minY;
-
-        }
-
-    }
-
-    /* ==================================================
-        穴数
-    ================================================== */
-
-    count() {
-
-        return this.holes.length;
-
-    }
-
-    /* ==================================================
-        表示切替
-    ================================================== */
-
-    show(flag = true) {
-
-        this.visible = flag;
-
-    }
-
-    /* ==================================================
-        色取得
-    ================================================== */
-
-    getColor(hole) {
-
-        const d = hole.diameter || hole.d;
-
-        if (!d)
-            return APP.COLOR.OTHER;
-
-        if (Math.abs(d - 2.6) < 0.2)
-            return APP.COLOR.M3;   // M3
-
-        if (Math.abs(d - 3.4) < 0.2)
-            return APP.COLOR.M4;   // M4
-
-        if (Math.abs(d - 4.3) < 0.2)
-            return APP.COLOR.M5;   // M5
-
-        return APP.COLOR.OTHER;
-
-    }
-    /* ==================================================
-    描画
-================================================== */
-
-    draw(ctx, transform) {
-
-        if (!this.visible)
-            return;
-
-        if (!ctx)
-            return;
-
-        if (!transform)
-            return;
+        ctx.save();
 
         //------------------------------------------
-        // 輪郭描画
+        // Transform
         //------------------------------------------
 
-        if (this.outline.length > 1) {
+        ctx.translate(
 
-            ctx.strokeStyle =
-                APP.COLOR.OUTLINE;
-            ctx.lineWidth = 2;
+            AppState.offsetX,
 
-            ctx.beginPath();
+            AppState.offsetY
 
-            this.outline.forEach((p, index) => {
-
-                const pt = this.transformPoint(p, transform);
-
-                if (index === 0)
-                    ctx.moveTo(pt.x, pt.y);
-                else
-                    ctx.lineTo(pt.x, pt.y);
-
-            });
-
-            ctx.closePath();
-            ctx.stroke();
-
-        }
-
-        //------------------------------------------
-        // 穴描画
-        //------------------------------------------
-
-
-
-        this.drawAll(
-            ctx,
-            transform
         );
 
+        ctx.scale(
 
+            AppState.scale,
 
-    }
+            AppState.scale
 
-    /* ==================================================
-        穴描画
-    ================================================== */
-
-    drawHole(ctx, hole, transform) {
-
-        const p = this.transformPoint(
-            hole,
-            transform
         );
 
-        const color =
-            this.getColor(hole);
+        ctx.rotate(
 
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
+            AppState.rotation*Math.PI/180
+
+        );
+
+        ctx.globalAlpha=this.opacity;
 
         //------------------------------------------
-        // マーカー半径
+        // Outline
         //------------------------------------------
 
-        const radius =
+        if(this.showOutline){
 
-            this.markerRadius *
+            this.drawOutline(ctx);
 
-            Math.max(
-                0.7,
-                transform.scale
+        }
+
+        //------------------------------------------
+        // Hole
+        //------------------------------------------
+
+        this.drawHoles(ctx);
+
+        ctx.restore();
+
+    },
+
+    /* ==================================================
+        Outline
+    ================================================== */
+
+    drawOutline(ctx){
+
+        const outline=
+
+            AppState.outline;
+
+        if(outline.length<2) return;
+
+        ctx.beginPath();
+
+        ctx.strokeStyle=
+
+            this.color.outline;
+
+        ctx.lineWidth=
+
+            this.lineWidth;
+
+        ctx.moveTo(
+
+            outline[0].x,
+
+            outline[0].y
+
+        );
+
+        for(
+
+            let i=1;
+
+            i<outline.length;
+
+            i++
+
+        ){
+
+            ctx.lineTo(
+
+                outline[i].x,
+
+                outline[i].y
+
             );
 
+        }
+
+        ctx.stroke();
+
+    },
+
+    /* ==================================================
+        Hole
+    ================================================== */
+
+    drawHoles(ctx){
+
+        for(
+
+            const hole of AppState.holes
+
+        ){
+
+            this.drawHole(
+
+                ctx,
+
+                hole
+
+            );
+
+        }
+
+    },
+
+    /* ==================================================
+        Draw Hole
+    ================================================== */
+
+    drawHole(
+
+        ctx,
+
+        hole
+
+    ){
+
         //------------------------------------------
-        // 円
+        // Color
+        //------------------------------------------
+
+        let color=
+
+            this.color.other;
+
+        switch(hole.type){
+
+            case "M3":
+
+                color=this.color.M3;
+
+                break;
+
+            case "M4":
+
+                color=this.color.M4;
+
+                break;
+
+            case "M5":
+
+                color=this.color.M5;
+
+                break;
+
+        }
+
+        //------------------------------------------
+        // Circle
         //------------------------------------------
 
         ctx.beginPath();
 
+        ctx.strokeStyle=color;
+
+        ctx.lineWidth=2;
+
         ctx.arc(
-            p.x,
-            p.y,
-            radius,
+
+            hole.x,
+
+            hole.y,
+
+            this.holeRadius,
+
             0,
-            Math.PI * 2
+
+            Math.PI*2
+
         );
 
         ctx.stroke();
 
         //------------------------------------------
-        // 十字
+        // Cross
         //------------------------------------------
-
-        const crossSize =
-            APP.AR.CROSS_SIZE *
-            Math.max(0.7, transform.scale);
 
         ctx.beginPath();
 
-        ctx.moveTo(p.x - crossSize, p.y);
-        ctx.lineTo(p.x + crossSize, p.y);
+        ctx.moveTo(
 
-        ctx.moveTo(p.x, p.y - crossSize);
-        ctx.lineTo(p.x, p.y + crossSize);
+            hole.x-6,
+
+            hole.y
+
+        );
+
+        ctx.lineTo(
+
+            hole.x+6,
+
+            hole.y
+
+        );
+
+        ctx.moveTo(
+
+            hole.x,
+
+            hole.y-6
+
+        );
+
+        ctx.lineTo(
+
+            hole.x,
+
+            hole.y+6
+
+        );
 
         ctx.stroke();
+
         //------------------------------------------
-        // 穴径
+        // Hole Number
         //------------------------------------------
 
-        if (hole.diameter || hole.d) {
+        if(
 
-            ctx.font = "16px Arial";
+            this.showHoleNumber
+
+        ){
+
+            ctx.fillStyle=color;
+
+            ctx.font=this.font;
 
             ctx.fillText(
 
-                (hole.diameter || hole.d).toFixed(1),
+                hole.type,
 
-                p.x + 10,
+                hole.x+10,
 
-                p.y - 10
+                hole.y-10
 
             );
 
         }
 
-    }
+    },
 
     /* ==================================================
-    座標変換
-================================================== */
-
-    transformPoint(point, transform) {
-
-        //------------------------------------------
-        // CAD原点補正
-        //------------------------------------------
-
-        const originX = this.originX || 0;
-        const originY = this.originY || 0;
-
-        const rad =
-            transform.rotation * Math.PI / 180;
-
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
-
-        //------------------------------------------
-        // 原点を補正して拡大
-        //------------------------------------------
-
-        const x =
-            (point.x - originX) * transform.scale;
-
-        const y =
-            (point.y - originY) * transform.scale;
-
-        //------------------------------------------
-        // 回転＋移動
-        //------------------------------------------
-
-        return {
-
-            x:
-                transform.x +
-                x * cos -
-                y * sin,
-
-            y:
-                transform.y +
-                x * sin +
-                y * cos
-
-        };
-
-    }
-    /* ==================================================
-    マーカーサイズ
-================================================== */
-
-    setMarkerRadius(radius) {
-
-        if (radius <= 0)
-            return;
-
-        this.markerRadius = radius;
-
-    }
-
-    /* ==================================================
-        表示切替
+        Mouse Down
     ================================================== */
 
-    toggle() {
+    mouseDown(event){
+
+        AppState.dragging = true;
+
+        AppState.lastX = event.clientX;
+
+        AppState.lastY = event.clientY;
+
+    },
+
+    /* ==================================================
+        Mouse Move
+    ================================================== */
+
+    mouseMove(event){
+
+        if(!AppState.dragging) return;
+
+        const dx =
+
+            event.clientX - AppState.lastX;
+
+        const dy =
+
+            event.clientY - AppState.lastY;
+
+        AppState.offsetX += dx;
+
+        AppState.offsetY += dy;
+
+        AppState.lastX = event.clientX;
+
+        AppState.lastY = event.clientY;
+
+    },
+
+    /* ==================================================
+        Mouse Up
+    ================================================== */
+
+    mouseUp(){
+
+        AppState.dragging = false;
+
+    },
+
+    /* ==================================================
+        Event Initialize
+    ================================================== */
+
+    initialize(){
+
+        const canvas = AppState.canvas;
+
+        if(!canvas) return;
+
+        //------------------------------------------
+        // Mouse
+        //------------------------------------------
+
+        canvas.addEventListener(
+
+            "mousedown",
+
+            (e)=>{
+
+                this.mouseDown(e);
+
+            }
+
+        );
+
+        window.addEventListener(
+
+            "mousemove",
+
+            (e)=>{
+
+                this.mouseMove(e);
+
+            }
+
+        );
+
+        window.addEventListener(
+
+            "mouseup",
+
+            ()=>{
+
+                this.mouseUp();
+
+            }
+
+        );
+
+        //------------------------------------------
+        // Touch (1本指移動)
+        //------------------------------------------
+
+        canvas.addEventListener(
+
+            "touchstart",
+
+            (e)=>{
+
+                if(e.touches.length!==1) return;
+
+                e.preventDefault();
+
+                const t=e.touches[0];
+
+                AppState.dragging=true;
+
+                AppState.lastX=t.clientX;
+
+                AppState.lastY=t.clientY;
+
+            },
+
+            {passive:false}
+
+        );
+
+        canvas.addEventListener(
+
+            "touchmove",
+
+            (e)=>{
+
+                if(
+
+                    !AppState.dragging ||
+
+                    e.touches.length!==1
+
+                ) return;
+
+                e.preventDefault();
+
+                const t=e.touches[0];
+
+                const dx=t.clientX-AppState.lastX;
+
+                const dy=t.clientY-AppState.lastY;
+
+                AppState.offsetX+=dx;
+
+                AppState.offsetY+=dy;
+
+                AppState.lastX=t.clientX;
+
+                AppState.lastY=t.clientY;
+
+            },
+
+            {passive:false}
+
+        );
+
+        canvas.addEventListener(
+
+            "touchend",
+
+            ()=>{
+
+                AppState.dragging=false;
+
+            }
+
+        );
+
+        console.log(
+
+            "Marker Event Ready"
+
+        );
+
+    },
+        /* ==================================================
+        Touch Distance
+    ================================================== */
+
+    touchDistance(t1, t2){
+
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+
+        return Math.sqrt(dx * dx + dy * dy);
+
+    },
+
+    /* ==================================================
+        Touch Angle
+    ================================================== */
+
+    touchAngle(t1, t2){
+
+        return Math.atan2(
+
+            t2.clientY - t1.clientY,
+            t2.clientX - t1.clientX
+
+        );
+
+    },
+
+    /* ==================================================
+        Pinch Start
+    ================================================== */
+
+    pinchStart(e){
+
+        if(e.touches.length !== 2) return;
+
+        e.preventDefault();
+
+        AppState.pinching = true;
+
+        AppState.lastDistance =
+
+            this.touchDistance(
+
+                e.touches[0],
+
+                e.touches[1]
+
+            );
+
+        AppState.lastAngle =
+
+            this.touchAngle(
+
+                e.touches[0],
+
+                e.touches[1]
+
+            );
+
+    },
+
+    /* ==================================================
+        Pinch Move
+    ================================================== */
+
+    pinchMove(e){
+
+        if(
+
+            !AppState.pinching ||
+
+            e.touches.length !== 2
+
+        ) return;
+
+        e.preventDefault();
+
+        //------------------------------------------
+        // Scale
+        //------------------------------------------
+
+        const distance =
+
+            this.touchDistance(
+
+                e.touches[0],
+
+                e.touches[1]
+
+            );
+
+        const scale =
+
+            distance /
+
+            AppState.lastDistance;
+
+        AppState.scale *= scale;
+
+        //------------------------------------------
+        // Rotation
+        //------------------------------------------
+
+        const angle =
+
+            this.touchAngle(
+
+                e.touches[0],
+
+                e.touches[1]
+
+            );
+
+        const diff =
+
+            angle -
+
+            AppState.lastAngle;
+
+        AppState.rotation +=
+
+            diff * 180 / Math.PI;
+
+        //------------------------------------------
+
+        AppState.lastDistance = distance;
+
+        AppState.lastAngle = angle;
+
+        //------------------------------------------
+        // 表示更新
+        //------------------------------------------
+
+        const scaleLabel =
+
+            document.getElementById(
+
+                "scaleValue"
+
+            );
+
+        if(scaleLabel){
+
+            scaleLabel.textContent =
+
+                (AppState.scale * 100)
+
+                .toFixed(0)
+
+                + "%";
+
+        }
+
+        const rotationLabel =
+
+            document.getElementById(
+
+                "rotationValue"
+
+            );
+
+        if(rotationLabel){
+
+            rotationLabel.textContent =
+
+                AppState.rotation
+
+                .toFixed(1)
+
+                + "°";
+
+        }
+
+    },
+
+    /* ==================================================
+        Pinch End
+    ================================================== */
+
+    pinchEnd(){
+
+        AppState.pinching = false;
+
+    },
+        /* ==================================================
+        Reset
+    ================================================== */
+
+    reset(){
+
+        AppState.scale = 1.0;
+
+        AppState.rotation = 0;
+
+        AppState.offsetX = 0;
+
+        AppState.offsetY = 0;
+
+        this.updateInfo();
+
+    },
+
+    /* ==================================================
+        Marker Visible
+    ================================================== */
+
+    setVisible(flag){
+
+        this.visible = flag;
+
+    },
+
+    toggleMarker(){
 
         this.visible = !this.visible;
 
-    }
+    },
 
     /* ==================================================
-        穴番号表示
+        Outline
     ================================================== */
 
-    drawIndex(ctx, hole, point, index) {
+    toggleOutline(){
 
-        ctx.fillStyle = "#FFFFFF";
-        ctx.font = "12px Arial";
+        this.showOutline =
 
-        ctx.fillText(
+            !this.showOutline;
 
-            String(index + 1),
-
-            point.x + 12,
-
-            point.y + 14
-
-        );
-
-    }
+    },
 
     /* ==================================================
-        デバッグ表示
+        Hole Number
     ================================================== */
 
-    drawDebug(ctx) {
+    toggleHoleNumber(){
 
-        if (!ctx)
-            return;
+        this.showHoleNumber =
 
-        ctx.fillStyle = "rgba(255,255,255,0.8)";
-        ctx.font = "16px Arial";
+            !this.showHoleNumber;
 
-        ctx.fillText(
-            "Hole Count : " + this.holes.length,
-            20,
-            30
-        );
-
-        ctx.fillText(
-            "Outline : " + this.outline.length,
-            20,
-            55
-        );
-
-        ctx.fillText(
-            "Marker Radius : " + this.markerRadius,
-            20,
-            80
-        );
-        ctx.fillText(
-
-            "Visible : " + this.visible,
-
-            20,
-
-            105
-
-        );
-
-    }
+    },
 
     /* ==================================================
-        描画範囲チェック
+        Opacity
     ================================================== */
 
-    isInsideCanvas(ctx, point) {
+    setOpacity(value){
 
-        if (
-            point.x < 0 ||
-            point.y < 0 ||
-            point.x > ctx.canvas.width ||
-            point.y > ctx.canvas.height
-        ) {
+        value = Math.max(0.1, value);
 
-            return false;
+        value = Math.min(1.0, value);
+
+        this.opacity = value;
+
+    },
+
+    /* ==================================================
+        Scale
+    ================================================== */
+
+    setScale(scale){
+
+        AppState.scale = scale;
+
+        this.updateInfo();
+
+    },
+
+    /* ==================================================
+        Rotation
+    ================================================== */
+
+    setRotation(rotation){
+
+        AppState.rotation = rotation;
+
+        this.updateInfo();
+
+    },
+
+    /* ==================================================
+        Position
+    ================================================== */
+
+    setPosition(x,y){
+
+        AppState.offsetX = x;
+
+        AppState.offsetY = y;
+
+    },
+
+    /* ==================================================
+        Information
+    ================================================== */
+
+    updateInfo(){
+
+        const scale =
+
+            document.getElementById(
+
+                "scaleValue"
+
+            );
+
+        if(scale){
+
+            scale.textContent =
+
+                (AppState.scale*100).toFixed(0)
+
+                +"%";
 
         }
 
-        return true;
+        const rotation =
 
-    }
+            document.getElementById(
 
-    /* ==================================================
-        全穴描画（改良版）
-    ================================================== */
+                "rotationValue"
 
-    drawAll(ctx, transform) {
-
-        if (!this.visible)
-            return;
-
-        let index = 0;
-
-        for (const hole of this.holes) {
-
-            const p = this.transformPoint(
-                hole,
-                transform
             );
 
-            if (!this.isInsideCanvas(ctx, p))
-                continue;
+        if(rotation){
 
-            this.drawHole(
-                ctx,
-                hole,
-                transform
-            );
+            rotation.textContent =
 
-            this.drawIndex(
-                ctx,
-                hole,
-                p,
-                index
-            );
+                AppState.rotation.toFixed(1)
 
-            index++;
+                +"°";
 
         }
 
-    }
+        const holes =
+
+            document.getElementById(
+
+                "holeCount"
+
+            );
+
+        if(holes){
+
+            holes.textContent =
+
+                AppState.holes.length;
+
+        }
+
+    },
 
     /* ==================================================
-        情報取得
+        Animation
     ================================================== */
 
-    getHoles() {
+    render(){
 
-        return this.holes;
+        if(
+
+            !AppState.ctx ||
+
+            !AppState.canvas
+
+        ) return;
+
+        AppState.ctx.clearRect(
+
+            0,
+
+            0,
+
+            AppState.canvas.width,
+
+            AppState.canvas.height
+
+        );
+
+        this.draw();
 
     }
 
-    getOutline() {
+};
 
-        return this.outline;
+/* ======================================================
+    Animation Loop
+====================================================== */
 
-    }
+function animationLoop(){
+
+    marker.render();
+
+    requestAnimationFrame(
+
+        animationLoop
+
+    );
 
 }
 
+requestAnimationFrame(
+
+    animationLoop
+
+);
+
 /* ======================================================
-    Singleton
+    Toolbar
 ====================================================== */
 
-export const marker =
-    new MarkerRenderer();
+window.addEventListener(
+
+    "DOMContentLoaded",
+
+    ()=>{
+
+        const reset=
+
+            document.getElementById(
+
+                "resetButton"
+
+            );
+
+        if(reset){
+
+            reset.onclick=()=>{
+
+                marker.reset();
+
+            };
+
+        }
+
+        const outline=
+
+            document.getElementById(
+
+                "outlineButton"
+
+            );
+
+        if(outline){
+
+            outline.onclick=()=>{
+
+                marker.toggleOutline();
+
+            };
+
+        }
+
+        const markerButton=
+
+            document.getElementById(
+
+                "markerButton"
+
+            );
+
+        if(markerButton){
+
+            markerButton.onclick=()=>{
+
+                marker.toggleMarker();
+
+            };
+
+        }
+
+    }
+
+);

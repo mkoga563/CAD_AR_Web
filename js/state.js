@@ -1,7 +1,8 @@
 // ======================================================
 // CAD AR System
-// Version 3.0
+// Version 4.0
 // state.js
+// アプリケーション状態管理
 // ======================================================
 
 "use strict";
@@ -17,175 +18,194 @@ export const AppState = {
     //--------------------------------------------------
 
     initialized: false,
-    cvReady: false,
-    partLoaded: false,
 
-    app: null,
+    version: "4.0.0",
+
+    debug: true,
+
+    //--------------------------------------------------
+    // DOM
+    //--------------------------------------------------
+
+    video: null,
+
+    canvas: null,
+
+    ctx: null,
 
     //--------------------------------------------------
     // Camera
     //--------------------------------------------------
 
-    video: null,
     stream: null,
 
-    facingMode: "environment",
-
-    cameraWidth: 0,
-    cameraHeight: 0,
+    cameraFacing: "environment",
 
     //--------------------------------------------------
-    // Canvas
-    //--------------------------------------------------
-
-    canvas: null,
-    ctx: null,
-
-    //--------------------------------------------------
-    // CAD Data
+    // Part
     //--------------------------------------------------
 
     partNo: "",
 
     holes: [],
+
     outline: [],
 
-    bounds: null,
+    width: 0,
+
+    height: 0,
 
     //--------------------------------------------------
-    // AR
+    // Marker Transform
     //--------------------------------------------------
 
-    transform: {
+    scale: 1.0,
 
-        x: 0,
-        y: 0,
-        scale: 1,
-        rotation: 0
+    rotation: 0,
 
-    },
+    offsetX: 0,
 
-    detected: false,
+    offsetY: 0,
 
     //--------------------------------------------------
-    // Debug
+    // Touch
     //--------------------------------------------------
 
-    debug: true,
+    dragging: false,
+
+    rotating: false,
+
+    pinching: false,
+
+    lastX: 0,
+
+    lastY: 0,
+
+    lastDistance: 0,
+
+    lastAngle: 0,
+
+    //--------------------------------------------------
+    // Display
+    //--------------------------------------------------
+
+    markerVisible: true,
+
+    outlineVisible: true,
+
+    holeVisible: true,
+
+    opacity: 1.0,
+
+    //--------------------------------------------------
+    // Statistics
+    //--------------------------------------------------
+
+    holeCount: 0,
 
     fps: 0,
 
-    frameCount: 0,
-
-    lastTime: performance.now(),
+    lastFrameTime: 0,
 
     //--------------------------------------------------
-    // Status
+    // QR
     //--------------------------------------------------
 
-    status: "",
-
-    setStatus(text) {
-
-        this.status = text;
-
-    },
+    qrCreated: false,
 
     //--------------------------------------------------
-    // FPS
+    // Flags
     //--------------------------------------------------
 
-    updateFPS() {
+    jsonLoaded: false,
 
-        this.frameCount++;
+    cameraReady: false,
 
-        const now = performance.now();
-
-        if (now - this.lastTime >= 1000) {
-
-            this.fps = this.frameCount;
-
-            this.frameCount = 0;
-
-            this.lastTime = now;
-
-        }
-
-    },
-
-    //--------------------------------------------------
-    // Transform
-    //--------------------------------------------------
-
-    setTransform(transform) {
-
-        this.transform = {
-
-            x: transform.x,
-
-            y: transform.y,
-
-            scale: transform.scale,
-
-            rotation: transform.rotation
-
-        };
-
-    },
-
-    //--------------------------------------------------
-    // Reset
-    //--------------------------------------------------
-
-    reset() {
-
-        this.partLoaded = false;
-
-        this.detected = false;
-
-        this.partNo = "";
-
-        this.holes = [];
-
-        this.outline = [];
-
-        this.bounds = null;
-
-        this.transform = {
-
-            x: 0,
-            y: 0,
-            scale: 1,
-            rotation: 0
-
-        };
-
-    },
-
-    //--------------------------------------------------
-    // Debug表示
-    //--------------------------------------------------
-
-    print() {
-
-        console.group("AppState");
-
-        console.log("Initialized :", this.initialized);
-
-        console.log("CV Ready :", this.cvReady);
-
-        console.log("Part :", this.partNo);
-
-        console.log("Loaded :", this.partLoaded);
-
-        console.log("Detected :", this.detected);
-
-        console.log("FPS :", this.fps);
-
-        console.log("Transform :", this.transform);
-
-        console.groupEnd();
-
-    }
+    drawing: false
 
 };
+
+/* ======================================================
+    Reset Transform
+====================================================== */
+
+export function resetTransform(){
+
+    AppState.scale = 1.0;
+
+    AppState.rotation = 0;
+
+    AppState.offsetX = 0;
+
+    AppState.offsetY = 0;
+
+}
+
+/* ======================================================
+    Reset Part
+====================================================== */
+
+export function clearPart(){
+
+    AppState.partNo = "";
+
+    AppState.holes = [];
+
+    AppState.outline = [];
+
+    AppState.width = 0;
+
+    AppState.height = 0;
+
+    AppState.holeCount = 0;
+
+    AppState.jsonLoaded = false;
+
+}
+
+/* ======================================================
+    Toggle
+====================================================== */
+
+export function toggleMarker(){
+
+    AppState.markerVisible =
+        !AppState.markerVisible;
+
+}
+
+export function toggleOutline(){
+
+    AppState.outlineVisible =
+        !AppState.outlineVisible;
+
+}
+
+/* ======================================================
+    Set Part Data
+====================================================== */
+
+export function setPartData(data){
+
+    AppState.partNo = data.partNo ?? "";
+
+    AppState.holes = data.holes ?? [];
+
+    AppState.outline = data.outline ?? [];
+
+    AppState.width = data.width ?? 0;
+
+    AppState.height = data.height ?? 0;
+
+    AppState.holeCount =
+        AppState.holes.length;
+
+    AppState.jsonLoaded = true;
+
+}
+
+/* ======================================================
+    Freeze
+====================================================== */
+
+Object.seal(AppState);

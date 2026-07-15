@@ -1,428 +1,193 @@
 // ======================================================
 // CAD AR System
-// Version 3.0
+// Version 4.0
 // dxf.js
+// JSON Loader
 // ======================================================
 
 "use strict";
 
+import {
+
+    AppState,
+    setPartData
+
+} from "./state.js";
+
 /* ======================================================
-    DXF Loader
+    Loader
 ====================================================== */
 
-class DXFLoader {
-
-    constructor() {
-
-        this.reference = null;
-
-        this.clear();
-
-    }
+export const dxfLoader = {
 
     /* ==================================================
-        初期化
-    ================================================== */
-
-    clear() {
-
-
-        this.data = null;
-
-        this.partNo = "";
-
-        this.holes = [];
-
-        this.outline = [];
-
-        this.reference = null;
-
-        this.bounds = {
-
-            minX: 0,
-            minY: 0,
-            maxX: 0,
-            maxY: 0,
-            width: 0,
-            height: 0
-
-        };
-
-    }
-
-    /* ==================================================
-        JSON読込
+        Load JSON
     ================================================== */
 
     async load(partNo) {
 
-        this.clear();
-
-        this.partNo = partNo;
-
         try {
 
-            const url =
-                `parts/${partNo}/${partNo}.json`;
+            if (!partNo) {
 
-            const response = await fetch(url);
+                throw new Error("部品番号がありません");
+
+            }
+
+            const file =
+
+                `./parts/${partNo}.json`;
+
+            console.log(
+
+                "Load :", file
+
+            );
+
+            const response =
+
+                await fetch(file);
 
             if (!response.ok) {
 
                 throw new Error(
-                    "JSON File Not Found : " + url
+
+                    "JSONが見つかりません"
+
                 );
 
             }
 
-            this.data = await response.json();
+            const data =
+
+                await response.json();
 
             //------------------------------------------
-            // 穴
+            // Stateへ保存
             //------------------------------------------
 
-            if (Array.isArray(this.data.holes)) {
-
-                this.holes = this.data.holes;
-
-            }
-
-            //------------------------------------------
-            // 輪郭
-            //------------------------------------------
-
-            if (Array.isArray(this.data.outline)) {
-
-                this.outline = this.data.outline;
-
-            }
-
-            //------------------------------------------
-            // 外形計算
-            //------------------------------------------
-
-            this.calculateBounds();
-
-            this.normalizeCoordinates();
-
-            this.parse();
-
-            this.debug();
+            setPartData(data);
 
             console.log(
-                "DXF Loaded :",
-                partNo
+
+                "Part :", data.partNo
+
+            );
+
+            console.log(
+
+                "Hole :", data.holes.length
+
+            );
+
+            console.log(
+
+                "Outline :", data.outline.length
+
             );
 
             return true;
 
         }
 
-        catch (e) {
+        catch(e){
 
             console.error(e);
+
+            alert(e.message);
 
             return false;
 
         }
 
-    }
-    /* ==================================================
-    外形計算
-================================================== */
-
-    calculateBounds() {
-
-        if (!this.outline.length)
-            return;
-
-        let minX = Number.MAX_VALUE;
-        let minY = Number.MAX_VALUE;
-
-        let maxX = Number.MIN_VALUE;
-        let maxY = Number.MIN_VALUE;
-
-        for (const p of this.outline) {
-
-            if (p.x < minX) minX = p.x;
-            if (p.y < minY) minY = p.y;
-
-            if (p.x > maxX) maxX = p.x;
-            if (p.y > maxY) maxY = p.y;
-
-        }
-
-        this.bounds.minX = minX;
-        this.bounds.minY = minY;
-
-        this.bounds.maxX = maxX;
-        this.bounds.maxY = maxY;
-
-        this.bounds.width = maxX - minX;
-        this.bounds.height = maxY - minY;
-
-    }
+    },
 
     /* ==================================================
-        穴取得
+        Hole
     ================================================== */
 
-    getHoles() {
+    getHoles(){
 
-        return this.holes;
+        return AppState.holes;
 
-    }
+    },
 
     /* ==================================================
-        輪郭取得
+        Outline
     ================================================== */
 
-    getOutline() {
+    getOutline(){
 
-        return this.outline;
+        return AppState.outline;
 
-    }
+    },
 
     /* ==================================================
-        外形取得
+        Size
     ================================================== */
 
-    getBounds() {
+    getWidth(){
 
-        return this.bounds;
+        return AppState.width;
 
-    }
+    },
+
+    getHeight(){
+
+        return AppState.height;
+
+    },
 
     /* ==================================================
-        部品番号
+        Count
     ================================================== */
 
-    getPartNo() {
+    getHoleCount(){
 
-        return this.partNo;
+        return AppState.holeCount;
 
-    }
+    },
 
     /* ==================================================
-        JSON全体
+        Part
     ================================================== */
 
-    getData() {
+    getPartNo(){
 
-        return this.data;
+        return AppState.partNo;
 
-    }
+    },
 
     /* ==================================================
-        読込み済み判定
+        Loaded
     ================================================== */
 
-    isLoaded() {
+    isLoaded(){
 
-        return this.data !== null;
+        return AppState.jsonLoaded;
 
-    }
+    },
 
     /* ==================================================
-        穴数
+        Clear
     ================================================== */
 
-    holeCount() {
+    clear(){
 
-        return this.holes.length;
+        AppState.partNo="";
 
-    }
+        AppState.holes=[];
 
-    /* ==================================================
-        外形点数
-    ================================================== */
+        AppState.outline=[];
 
-    outlineCount() {
+        AppState.width=0;
 
-        return this.outline.length;
+        AppState.height=0;
 
-    }
-    getBounds() {
+        AppState.holeCount=0;
 
-        return this.bounds;
+        AppState.jsonLoaded=false;
 
     }
 
-    /* ==================================================
-        座標正規化
-    ================================================== */
-
-    normalizeCoordinates() {
-
-        const ox = this.bounds.minX;
-        const oy = this.bounds.minY;
-
-        //------------------------------------------
-        // 穴
-        //------------------------------------------
-
-        this.holes.forEach(h => {
-
-            h.x -= ox;
-            h.y -= oy;
-
-        });
-
-        //------------------------------------------
-        // 輪郭
-        //------------------------------------------
-
-        this.outline.forEach(p => {
-
-            p.x -= ox;
-            p.y -= oy;
-
-        });
-
-        //------------------------------------------
-        // Bounds更新
-        //------------------------------------------
-
-        this.bounds.maxX -= ox;
-        this.bounds.maxY -= oy;
-
-        this.bounds.minX = 0;
-        this.bounds.minY = 0;
-
-    }
-
-
-    /* ==================================================
-    JSON解析
-================================================== */
-
-    parse() {
-
-        if (!this.data)
-            return;
-
-        //------------------------------------------
-        // 新Version
-        //------------------------------------------
-
-        if (this.data.reference) {
-
-            this.reference = this.data.reference;
-
-        }
-        else {
-
-            this.reference = {
-
-                origin: {
-                    x: this.bounds.minX,
-                    y: this.bounds.minY
-                },
-
-                rotation: 0
-
-            };
-
-        }
-
-        //------------------------------------------
-        // 穴分類
-        //------------------------------------------
-
-        this.holes.forEach(hole => {
-
-            const d = hole.diameter || hole.d || 0;
-
-            if (Math.abs(d - 2.6) < 0.2)
-                hole.type = "M3";
-
-            else if (Math.abs(d - 3.4) < 0.2)
-                hole.type = "M4";
-
-            else if (Math.abs(d - 4.3) < 0.2)
-                hole.type = "M5";
-
-            else
-                hole.type = "OTHER";
-
-        });
-
-    }
-
-    /* ==================================================
-        基準点取得
-    ================================================== */
-
-    getReference() {
-
-        return this.reference;
-
-    }
-
-    /* ==================================================
-        JSON Version
-    ================================================== */
-
-    getVersion() {
-
-        return this.data.version || 1;
-
-    }
-
-    /* ==================================================
-        Debug
-    ================================================== */
-
-    debug() {
-
-        console.group("DXF Loader");
-
-        console.log("Part :", this.partNo);
-
-        console.log("Version :", this.getVersion());
-
-        console.log("Hole :", this.holes.length);
-
-        console.log("Outline :", this.outline.length);
-
-        console.log("Bounds :", this.bounds);
-
-        console.log("Reference :", this.reference);
-
-        console.groupEnd();
-
-    }
-
-    /* ==================================================
-        JSON Export
-    ================================================== */
-
-    exportJSON() {
-
-        return {
-            
-            loaded: this.isLoaded(),
-            
-            version: this.getVersion(),
-
-            partNo: this.partNo,
-
-            holes: this.holes,
-
-            outline: this.outline,
-
-            bounds: this.bounds,
-
-            reference: this.reference
-
-        };
-
-    }
-
-}
-
-/* ======================================================
-    Singleton
-====================================================== */
-
-export const dxfLoader = new DXFLoader();
+};

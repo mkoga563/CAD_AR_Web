@@ -7,37 +7,21 @@
 
 <meta
     name="viewport"
-    content="width=device-width,height=device-height,initial-scale=1,viewport-fit=cover">
+    content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 
 <meta
     name="theme-color"
     content="#222222">
 
-<title>CAD AR System Version 3.1</title>
-
-<!-- =====================================================
-    CSS
-====================================================== -->
+<title>CAD AR System Ver4.0</title>
 
 <link
     rel="stylesheet"
     href="style.css">
 
-<!-- =====================================================
-    OpenCV
-====================================================== -->
+<!-- QRCode -->
 
-<script
-    src="./lib/opencv.js">
-</script>
-
-<!-- =====================================================
-    QRCode
-====================================================== -->
-
-<script
-    src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
-</script>
+<script src="./lib/qrcode.min.js"></script>
 
 </head>
 
@@ -45,269 +29,149 @@
 
 <div id="app">
 
-<!-- =====================================================
-    Top Bar
-====================================================== -->
+    <!-- ==========================
+         Camera
+    =========================== -->
 
-<div id="topBar">
+    <video
+        id="video"
+        autoplay
+        playsinline
+        muted>
+    </video>
 
-    <input
-        id="partNo"
-        type="text"
-        placeholder="部品番号">
+    <!-- ==========================
+         Marker Canvas
+    =========================== -->
 
-    <button id="loadButton">
+    <canvas
+        id="canvas">
+    </canvas>
 
-        CAD読込
+    <!-- ==========================
+         Top Panel
+    =========================== -->
 
-    </button>
-
-    <label>
+    <div id="topPanel">
 
         <input
-            id="markerVisible"
-            type="checkbox"
-            checked>
+            id="partNo"
+            type="text"
+            placeholder="部品番号">
 
-        穴マーカー表示
+        <button id="loadButton">
 
-    </label>
-
-    <button id="cameraButton">
-
-        カメラ切替
-
-    </button>
-
-    <button id="debugButton">
-
-        Debug
-
-    </button>
-
-</div>
-
-<!-- =====================================================
-    Camera
-====================================================== -->
-
-<video
-    id="video"
-    autoplay
-    playsinline
-    muted>
-</video>
-
-<!-- =====================================================
-    AR Canvas
-====================================================== -->
-
-<canvas
-    id="canvas">
-</canvas>
-
-<!-- =====================================================
-    QR Code
-====================================================== -->
-
-<div id="qrcode">
-</div>
-
-<!-- =====================================================
-    FPS
-====================================================== -->
-
-<div id="fps">
-
-0 FPS
-
-</div>
-
-<!-- =====================================================
-    Version
-====================================================== -->
-
-<div id="version">
-
-Version 9.1
-
-</div>
-
-<!-- =====================================================
-    Status
-====================================================== -->
-
-<div id="status">
-
-待機中
-
-</div>
-
-<!-- =====================================================
-    Debug
-====================================================== -->
-
-<div id="debug">
-</div>
-<!-- =====================================================
-    Loading Overlay
-====================================================== -->
-
-<div
-    id="loadingOverlay"
-    class="overlay">
-
-    <div class="overlayBox">
-
-        <div class="spinner">
-        </div>
-
-        <div id="loadingText">
-
-            OpenCV 読み込み中...
-
-        </div>
-
-    </div>
-
-</div>
-
-<!-- =====================================================
-    Error Dialog
-====================================================== -->
-
-<div
-    id="errorDialog"
-    class="dialog"
-    style="display:none;">
-
-    <div class="dialogBox">
-
-        <h2>
-
-            エラー
-
-        </h2>
-
-        <div id="errorMessage">
-        </div>
-
-        <button id="closeError">
-
-            OK
+            CAD読込
 
         </button>
 
     </div>
 
-</div>
+    <!-- ==========================
+         QR
+    =========================== -->
 
-<!-- =====================================================
-    Camera Permission
-====================================================== -->
+    <div id="qrcode">
+    </div>
 
-<div
-    id="permissionMessage"
-    style="display:none;">
+    <!-- ==========================
+         Status
+    =========================== -->
 
-    カメラの使用を許可してください。
+    <div id="status">
 
-</div>
+        起動中...
 
-<!-- =====================================================
-    OpenCV Status
-====================================================== -->
+    </div>
 
-<div
-    id="opencvStatus"
-    style="display:none;">
+    <!-- ==========================
+         Info
+    =========================== -->
 
-    OpenCV 初期化中...
+    <div id="info">
 
-</div>
+        <div>
 
-<!-- =====================================================
-    JavaScript
-====================================================== -->
+            Scale :
+            <span id="scaleValue">
 
-<script type="module">
+                100%
 
-import { APP } from "./js/config.js";
-import { AppState } from "./js/state.js";
+            </span>
 
-/* グローバル公開（必要なものだけ） */
+        </div>
 
-window.APP = APP;
-window.AppState = AppState;
+        <div>
 
-/* -------------------------------
-   起動
--------------------------------- */
+            Rotation :
+            <span id="rotationValue">
 
-window.addEventListener("load", () => {
+                0°
 
-    const overlay =
-        document.getElementById("loadingOverlay");
+            </span>
 
-    if (overlay) {
+        </div>
 
-        overlay.style.display = "none";
+        <div>
 
-    }
+            Holes :
+            <span id="holeCount">
 
-});
+                0
 
-/* -------------------------------
-   エラー表示
--------------------------------- */
+            </span>
 
-window.addEventListener("error", (event) => {
+        </div>
 
-    console.error(event);
+    </div>
 
-    const dialog =
-        document.getElementById("errorDialog");
+    <!-- ==========================
+         Bottom Toolbar
+    =========================== -->
 
-    const message =
-        document.getElementById("errorMessage");
+    <div id="toolbar">
 
-    if (dialog && message) {
+        <button id="resetButton">
 
-        message.textContent =
-            event.message;
+            リセット
 
-        dialog.style.display = "flex";
+        </button>
 
-    }
+        <button id="outlineButton">
 
-});
+            外形
 
-/* -------------------------------
-   エラーダイアログ閉じる
--------------------------------- */
+        </button>
 
-document
-.getElementById("closeError")
-.addEventListener("click", () => {
+        <button id="markerButton">
 
-    document
-    .getElementById("errorDialog")
-    .style.display = "none";
+            穴表示
 
-});
+        </button>
 
-</script>
+    </div>
 
-<!-- =====================================================
-    Main App
-====================================================== -->
+    <!-- ==========================
+         Loading
+    =========================== -->
 
-<script
-    type="module"
-    src="./js/app.js">
-</script>
+    <div id="loading">
+
+        <div class="loadingBox">
+
+            読み込み中...
+
+        </div>
+
+    </div>
 
 </div>
+
+<!-- ==========================
+     JavaScript
+=========================== -->
+
+<script type="module" src="./js/app.js"></script>
 
 </body>
 

@@ -1,86 +1,107 @@
 // ======================================================
 // CAD AR System
-// Version 3.0
+// Version 4.0
 // camera.js
 // ======================================================
 
 "use strict";
 
-import { APP } from "./config.js";
-
 import { AppState } from "./state.js";
 
 /* ======================================================
-    Camera Controller
+    Camera
 ====================================================== */
 
-class CameraController {
-
-    constructor() {
-
-        this.stream = null;
-
-        this.deviceId = null;
-
-        this.devices = [];
-
-        this.constraints = {
-
-            audio: false,
-
-            video: {
-
-                facingMode: "environment",
-
-                width: {
-                    ideal: APP.CAMERA.WIDTH
-                },
-
-                height: {
-                    ideal: APP.CAMERA.HEIGHT
-                }
-
-            }
-
-        };
-
-    }
+export const camera = {
 
     /* ==================================================
-        Camera Start
+        Start Camera
     ================================================== */
 
     async start() {
 
         try {
 
-            await this.stop();
+            if (AppState.stream) {
 
-            this.stream =
+                this.stop();
+
+            }
+
+            const constraints = {
+
+                audio: false,
+
+                video: {
+
+                    facingMode: AppState.cameraFacing,
+
+                    width: {
+
+                        ideal: 1920
+
+                    },
+
+                    height: {
+
+                        ideal: 1080
+
+                    }
+
+                }
+
+            };
+
+            AppState.stream =
+
                 await navigator.mediaDevices.getUserMedia(
-                    this.constraints
+
+                    constraints
+
                 );
 
             AppState.video.srcObject =
-                this.stream;
+
+                AppState.stream;
 
             await AppState.video.play();
 
-            await this.waitVideo();
+            await new Promise(resolve => {
 
-            AppState.stream =
-                this.stream;
+                if (
 
-            AppState.cameraWidth =
-                AppState.video.videoWidth;
+                    AppState.video.readyState >= 2
 
-            AppState.cameraHeight =
-                AppState.video.videoHeight;
+                ) {
+
+                    resolve();
+
+                }
+
+                else {
+
+                    AppState.video.onloadedmetadata = () => {
+
+                        resolve();
+
+                    };
+
+                }
+
+            });
+
+            this.resize();
+
+            AppState.cameraReady = true;
 
             console.log(
-                "Camera Started",
-                AppState.cameraWidth,
-                AppState.cameraHeight
+
+                "Camera Ready",
+
+                AppState.video.videoWidth,
+
+                AppState.video.videoHeight
+
             );
 
             return true;
@@ -91,371 +112,136 @@ class CameraController {
 
             console.error(e);
 
+            alert("カメラを起動できません。");
+
             return false;
 
         }
 
-    }
+    },
 
     /* ==================================================
-        Video待機
+        Stop Camera
     ================================================== */
 
-    async waitVideo() {
+    stop() {
 
-        return new Promise(resolve => {
+        if (!AppState.stream) return;
 
-            if (
-                AppState.video.readyState >= 2
-            ) {
+        AppState.stream
 
-                resolve();
-
-                return;
-
-            }
-
-            AppState.video.onloadeddata = () => {
-
-                resolve();
-
-            };
-
-        });
-
-    }
-
-    /* ==================================================
-        Camera Stop
-    ================================================== */
-
-    async stop() {
-
-        if (!this.stream)
-            return;
-
-        this.stream
             .getTracks()
+
             .forEach(track => {
 
                 track.stop();
 
             });
 
-        this.stream = null;
+        AppState.stream = null;
 
-    }
-        /* ==================================================
-        カメラ一覧取得
-    ================================================== */
+        AppState.cameraReady = false;
 
-    async enumerate() {
-
-        try {
-
-            const devices =
-                await navigator.mediaDevices.enumerateDevices();
-
-            this.devices =
-                devices.filter(d => d.kind === "videoinput");
-
-            console.log(
-                "Camera Count :",
-                this.devices.length
-            );
-
-            return this.devices;
-
-        }
-
-        catch (e) {
-
-            console.error(e);
-
-            return [];
-
-        }
-
-    }
+    },
 
     /* ==================================================
-        背面カメラ取得
-    ================================================== */
-
-    getBackCamera() {
-
-        if (this.devices.length === 0)
-            return null;
-
-        //------------------------------------------
-        // labelから判定
-        //------------------------------------------
-
-        for (const device of this.devices) {
-
-            const label =
-                device.label.toLowerCase();
-
-            if (
-                label.includes("back") ||
-                label.includes("rear") ||
-                label.includes("environment")
-            ) {
-
-                return device;
-
-            }
-
-        }
-
-        //------------------------------------------
-        // 最後のカメラ
-        //------------------------------------------
-
-        return this.devices[
-            this.devices.length - 1
-        ];
-
-    }
-
-    /* ==================================================
-        カメラ切替
+        Switch Camera
     ================================================== */
 
     async switchCamera() {
 
-        await this.enumerate();
+        if (
 
-        const device =
-            this.getBackCamera();
+            AppState.cameraFacing ===
 
-        if (!device)
-            return false;
+            "environment"
 
-        this.constraints.video = {
+        ) {
 
-            deviceId: {
+            AppState.cameraFacing = "user";
 
-                exact: device.deviceId
+        }
 
-            }
+        else {
 
-        };
+            AppState.cameraFacing =
 
-        return await this.start();
+                "environment";
 
-    }
+        }
+
+        await this.start();
+
+    },
 
     /* ==================================================
-        Zoom
+        Resize Canvas
     ================================================== */
 
-    async setZoom(value) {
+    resize() {
 
-        if (!this.stream)
-            return;
+        if (!AppState.video) return;
 
-        const track =
-            this.stream.getVideoTracks()[0];
+        if (!AppState.canvas) return;
 
-        if (!track)
-            return;
+        const rect =
 
-        const cap =
-            track.getCapabilities();
+            AppState.video.getBoundingClientRect();
 
-        if (!cap.zoom)
-            return;
+        AppState.canvas.width =
 
-        value = Math.max(
-            cap.zoom.min,
-            Math.min(
-                cap.zoom.max,
-                value
-            )
+            rect.width;
+
+        AppState.canvas.height =
+
+            rect.height;
+
+        console.log(
+
+            "Canvas",
+
+            rect.width,
+
+            rect.height
+
         );
 
-        try {
-
-            await track.applyConstraints({
-
-                advanced: [
-
-                    {
-
-                        zoom: value
-
-                    }
-
-                ]
-
-            });
-
-            console.log(
-                "Zoom :",
-                value
-            );
-
-        }
-
-        catch (e) {
-
-            console.error(e);
-
-        }
-
     }
 
-    /* ==================================================
-        Focus
-    ================================================== */
-
-    async autoFocus() {
-
-        if (!this.stream)
-            return;
-
-        const track =
-            this.stream.getVideoTracks()[0];
-
-        if (!track)
-            return;
-
-        try {
-
-            await track.applyConstraints({
-
-                advanced: [
-
-                    {
-
-                        focusMode: "continuous"
-
-                    }
-
-                ]
-
-            });
-
-        }
-
-        catch (e) {
-
-            console.warn(
-                "Auto Focus Unsupported"
-            );
-
-        }
-
-    }
-        /* ==================================================
-        タップフォーカス
-    ================================================== */
-
-    async focusAt(x, y) {
-
-        if (!this.stream)
-            return;
-
-        const track = this.stream.getVideoTracks()[0];
-
-        if (!track)
-            return;
-
-        try {
-
-            await track.applyConstraints({
-
-                advanced: [
-
-                    {
-                        focusMode: "continuous"
-                    }
-
-                ]
-
-            });
-
-            console.log(
-                `Focus : (${x}, ${y})`
-            );
-
-        }
-
-        catch (e) {
-
-            console.warn(
-                "Tap Focus Unsupported"
-            );
-
-        }
-
-    }
-
-    /* ==================================================
-        FPS
-    ================================================== */
-
-    getFPS() {
-
-        if (!AppState.video)
-            return 0;
-
-        if (AppState.video.getVideoPlaybackQuality) {
-
-            const q =
-                AppState.video.getVideoPlaybackQuality();
-
-            return q.totalVideoFrames;
-
-        }
-
-        return 0;
-
-    }
-
-    /* ==================================================
-        Camera Info
-    ================================================== */
-
-    getInfo() {
-
-        return {
-
-            width: AppState.cameraWidth,
-
-            height: AppState.cameraHeight,
-
-            deviceId: this.deviceId,
-
-            cameraCount: this.devices.length,
-
-            facingMode:
-                this.constraints.video.facingMode
-
-        };
-
-    }
-
-    /* ==================================================
-        Destroy
-    ================================================== */
-
-    async destroy() {
-
-        await this.stop();
-
-        this.devices = [];
-
-        this.deviceId = null;
-
-    }
-
-}
+};
 
 /* ======================================================
-    Singleton
+    Resize Event
 ====================================================== */
 
-export const camera =
-    new CameraController();
+window.addEventListener(
+
+    "resize",
+
+    () => {
+
+        camera.resize();
+
+    }
+
+);
+
+/* ======================================================
+    Orientation
+====================================================== */
+
+window.addEventListener(
+
+    "orientationchange",
+
+    () => {
+
+        setTimeout(() => {
+
+            camera.resize();
+
+        },300);
+
+    }
+
+);

@@ -1,110 +1,17 @@
 // ======================================================
 // CAD AR System
-// Version 3.1
+// Version 4.0
 // app.js
 // Part 1
 // ======================================================
 
 "use strict";
 
-/* ======================================================
-    Import
-====================================================== */
-
-import { APP } from "./config.js";
 import { AppState } from "./state.js";
-import { log, error } from "./utils.js";
-
-import {
-
-    initializeUI,
-    bindLoadButton,
-    bindMarkerCheck,
-    bindEnterKey,
-    loadLastPartNumber,
-    saveLastPartNumber,
-    getPartNumber,
-    setStatus
-
-} from "./ui.js";
-
-import { createQRCode } from "./qr.js";
 import { camera } from "./camera.js";
-import { dxfLoader } from "./dxf.js";
 import { marker } from "./marker.js";
-import { recognizer } from "./opencv-ar.js";
-
-/* ======================================================
-    Debug
-====================================================== */
-
-function debug(message) {
-
-    console.log("[CAD-AR]", message);
-
-    const el = document.getElementById("debug");
-
-    if (!el) return;
-
-    const time = new Date().toLocaleTimeString();
-
-    el.innerHTML += `[${time}] ${message}<br>`;
-
-    el.scrollTop = el.scrollHeight;
-
-}
-
-/* ======================================================
-    Canvas Resize
-====================================================== */
-
-function resizeCanvas() {
-
-    if (!AppState.video) return;
-
-    if (!AppState.canvas) return;
-
-    const rect =
-        AppState.video.getBoundingClientRect();
-
-    if (rect.width === 0 || rect.height === 0) return;
-
-    AppState.canvas.width = rect.width;
-    AppState.canvas.height = rect.height;
-
-    debug(
-        `Canvas ${rect.width} x ${rect.height}`
-    );
-
-}
-
-/* ======================================================
-    OpenCV Wait
-====================================================== */
-
-async function waitForOpenCV() {
-
-    debug("Waiting OpenCV...");
-
-    return new Promise(resolve => {
-
-        const timer = setInterval(() => {
-
-            if (window.cv && typeof cv.Mat === "function") {
-
-                clearInterval(timer);
-
-                debug("OpenCV Ready");
-
-                resolve();
-
-            }
-
-        }, 100);
-
-    });
-
-}
+import { dxfLoader } from "./dxf.js";
+import { createQRCode } from "./qr.js";
 
 /* ======================================================
     CAD AR Application
@@ -114,24 +21,17 @@ class CADARApplication {
 
     constructor() {
 
-        debug("===================================");
-
-        debug(APP.NAME);
-
-        debug("Version : " + APP.VERSION);
-
-        debug("===================================");
+        console.log("CAD AR Version 4.0");
 
     }
+
     /* ==================================================
-    Initialize
-================================================== */
+        Initialize
+    ================================================== */
 
     async initialize() {
 
         try {
-
-            debug("Application Initialize");
 
             //------------------------------------------
             // DOM
@@ -143,145 +43,62 @@ class CADARApplication {
             AppState.canvas =
                 document.getElementById("canvas");
 
-            if (!AppState.video)
-                throw new Error("video not found");
-
-            if (!AppState.canvas)
-                throw new Error("canvas not found");
-
             AppState.ctx =
                 AppState.canvas.getContext("2d");
-
-            debug("DOM Ready");
-
-            //------------------------------------------
-            // UI
-            //------------------------------------------
-
-            initializeUI();
-
-            loadLastPartNumber();
-
-            bindEnterKey(() => {
-
-                this.loadPart();
-
-            });
-
-            bindLoadButton(() => {
-
-                this.loadPart();
-
-            });
-
-            bindMarkerCheck((visible) => {
-
-                marker.show(visible);
-
-            });
-
-            debug("UI Ready");
-
-            //------------------------------------------
-            // QR
-            //------------------------------------------
-
-            createQRCode();
-
-            debug("QR Ready");
 
             //------------------------------------------
             // Camera
             //------------------------------------------
 
-            setStatus("カメラ起動中");
+            document.getElementById(
+                "status"
+            ).textContent =
+                "カメラ起動中...";
 
-            await camera.start();
+            const ok =
+                await camera.start();
 
-            await new Promise(resolve => {
+            if (!ok) {
 
-                if (AppState.video.readyState >= 1) {
-
-                    resolve();
-
-                } else {
-
-                    AppState.video.onloadedmetadata =
-                        () => resolve();
-
-                }
-
-            });
-
-            await camera.enumerate();
-
-            try {
-
-                await camera.autoFocus();
+                throw new Error(
+                    "Camera Start Error"
+                );
 
             }
 
-            catch {
+            //------------------------------------------
+            // Canvas
+            //------------------------------------------
 
-                debug("AutoFocus Skip");
+            camera.resize();
 
-            }
+            //------------------------------------------
+            // Marker
+            //------------------------------------------
 
-            resizeCanvas();
+            marker.initialize();
 
-            debug(
+            //------------------------------------------
+            // QR
+            //------------------------------------------
 
-                "Video : " +
-
-                AppState.video.videoWidth +
-
-                " x " +
-
-                AppState.video.videoHeight
-
+            createQRCode(
+                "qrcode",
+                window.location.href
             );
 
             //------------------------------------------
-            // OpenCV
+            // Status
             //------------------------------------------
 
-            setStatus("OpenCV準備中");
-
-            await waitForOpenCV();
-
-            recognizer.initialize();
-
-            AppState.cvReady = true;
-
-            debug("Recognizer Ready");
-
-            //------------------------------------------
-            // Resize Event
-            //------------------------------------------
-
-            window.addEventListener(
-
-                "resize",
-
-                resizeCanvas
-
-            );
-
-            //------------------------------------------
-            // Finish
-            //------------------------------------------
+            document.getElementById(
+                "status"
+            ).textContent =
+                "準備完了";
 
             AppState.initialized = true;
 
-            setStatus("準備完了");
-
-            debug("Application Ready");
-
-            //------------------------------------------
-            // AR Start
-            //------------------------------------------
-
-            this.startARLoop();
+            console.log("Application Ready");
 
         }
 
@@ -289,144 +106,389 @@ class CADARApplication {
 
             console.error(e);
 
-            error(e);
-
-            debug(e.message);
-
-            setStatus("初期化エラー");
+            alert(e.message);
 
         }
 
     }
     /* ==================================================
-    AR Loop
-================================================== */
+        CAD読込
+    ================================================== */
 
-    startARLoop() {
+    async loadPart() {
 
-        debug("AR Loop Start");
+        try {
 
-        const loop = () => {
+            const input =
+
+                document.getElementById(
+
+                    "partNo"
+
+                );
+
+            const partNo =
+
+                input.value.trim();
+
+            if (partNo === "") {
+
+                alert("部品番号を入力してください。");
+
+                return;
+
+            }
+
+            document.getElementById(
+
+                "status"
+
+            ).textContent =
+
+                "CAD読込中...";
 
             //------------------------------------------
-            // 初期化待ち
+            // JSON
             //------------------------------------------
 
-            if (!AppState.initialized) {
+            const ok =
 
-                requestAnimationFrame(loop);
+                await dxfLoader.load(
+
+                    partNo
+
+                );
+
+            if (!ok) {
+
+                document.getElementById(
+
+                    "status"
+
+                ).textContent =
+
+                    "JSON読込失敗";
 
                 return;
 
             }
 
             //------------------------------------------
-            // Canvas Clear
+            // 情報更新
             //------------------------------------------
 
-            AppState.ctx.clearRect(
+            marker.updateInfo();
 
-                0,
-                0,
+            //------------------------------------------
+            // 保存
+            //------------------------------------------
 
-                AppState.canvas.width,
-                AppState.canvas.height
+            localStorage.setItem(
+
+                "cadar_part",
+
+                partNo
 
             );
 
-            //------------------------------------------
-            // 認識処理
-            //------------------------------------------
+            document.getElementById(
 
-            if (
+                "status"
 
-                AppState.cvReady &&
+            ).textContent =
 
-                AppState.partLoaded
+                "CAD読込完了";
 
-            ) {
+            console.log(
 
-                try {
+                "Part Loaded",
 
-                    recognizer.detect();
+                partNo
+
+            );
+
+        }
+
+        catch (e) {
+
+            console.error(e);
+
+            alert(e.message);
+
+        }
+
+    }
+
+    /* ==================================================
+        Last Part
+    ================================================== */
+
+    loadLastPart() {
+
+        const part =
+
+            localStorage.getItem(
+
+                "cadar_part"
+
+            );
+
+        if (!part) return;
+
+        document.getElementById(
+
+            "partNo"
+
+        ).value = part;
+
+    }
+
+    /* ==================================================
+        Event
+    ================================================== */
+
+    bindEvents() {
+
+        //------------------------------------------
+        // CAD読込
+        //------------------------------------------
+
+        document
+
+            .getElementById(
+
+                "loadButton"
+
+            )
+
+            .addEventListener(
+
+                "click",
+
+                () => {
+
+                    this.loadPart();
 
                 }
 
-                catch (e) {
+            );
 
-                    console.error(e);
+        //------------------------------------------
+        // Enter
+        //------------------------------------------
 
-                    debug(
-                        "Recognizer : " +
-                        e.message
-                    );
+        document
 
-                }
+            .getElementById(
 
-            }
+                "partNo"
 
-            //------------------------------------------
-            // Debug
-            //------------------------------------------
+            )
 
-            try {
+            .addEventListener(
 
-                recognizer.drawDebug(
-                    AppState.ctx
-                );
+                "keydown",
 
-            }
+                (e) => {
 
-            catch {
+                    if (
 
-            }
+                        e.key === "Enter"
 
-            //------------------------------------------
-            // Hole Marker
-            //------------------------------------------
+                    ) {
 
-            if (
+                        this.loadPart();
 
-                recognizer.isDetected()
-
-            ) {
-
-                try {
-
-                    marker.draw(
-
-                        AppState.ctx,
-
-                        recognizer.getTransform()
-
-                    );
+                    }
 
                 }
 
-                catch (e) {
+            );
 
-                    console.error(e);
+        //------------------------------------------
+        // Reset
+        //------------------------------------------
+
+        document
+
+            .getElementById(
+
+                "resetButton"
+
+            )
+
+            .addEventListener(
+
+                "click",
+
+                () => {
+
+                    marker.reset();
 
                 }
 
-            }
+            );
 
-            //------------------------------------------
-            // Next Frame
-            //------------------------------------------
+        //------------------------------------------
+        // Outline
+        //------------------------------------------
 
-            requestAnimationFrame(loop);
+        document
 
-        };
+            .getElementById(
 
-        requestAnimationFrame(loop);
+                "outlineButton"
+
+            )
+
+            .addEventListener(
+
+                "click",
+
+                () => {
+
+                    marker.toggleOutline();
+
+                }
+
+            );
+
+        //------------------------------------------
+        // Marker
+        //------------------------------------------
+
+        document
+
+            .getElementById(
+
+                "markerButton"
+
+            )
+
+            .addEventListener(
+
+                "click",
+
+                () => {
+
+                    marker.toggleMarker();
+
+                }
+
+            );
+
+    }
+    /* ==================================================
+    Start
+================================================== */
+
+    async start() {
+
+        //------------------------------------------
+        // 初期化
+        //------------------------------------------
+
+        await this.initialize();
+
+        //------------------------------------------
+        // ボタンイベント
+        //------------------------------------------
+
+        this.bindEvents();
+
+        //------------------------------------------
+        // 前回部品番号
+        //------------------------------------------
+
+        this.loadLastPart();
+
+        //------------------------------------------
+        // 前回自動読込（入力がある場合）
+        //------------------------------------------
+
+        const partNo =
+
+            document.getElementById(
+
+                "partNo"
+
+            ).value.trim();
+
+        if (partNo !== "") {
+
+            await this.loadPart();
+
+        }
+
+        //------------------------------------------
+        // Loading
+        //------------------------------------------
+
+        const loading =
+
+            document.getElementById(
+
+                "loading"
+
+            );
+
+        if (loading) {
+
+            loading.style.display = "none";
+
+        }
+
+        console.log("System Start");
 
     }
 
 }
-/* ==================================================
-    Visibility
-================================================== */
+
+/* ======================================================
+    DOM Ready
+====================================================== */
+
+window.addEventListener(
+
+    "DOMContentLoaded",
+
+    async () => {
+
+        const app =
+
+            new CADARApplication();
+
+        AppState.app = app;
+
+        await app.start();
+
+    }
+
+);
+
+/* ======================================================
+    Before Unload
+====================================================== */
+
+window.addEventListener(
+
+    "beforeunload",
+
+    () => {
+
+        if (AppState.stream) {
+
+            camera.stop();
+
+        }
+
+    }
+
+);
+
+/* ======================================================
+    Visibility Change
+====================================================== */
 
 document.addEventListener(
 
@@ -436,15 +498,14 @@ document.addEventListener(
 
         if (document.hidden) {
 
-            debug("Application Pause");
+            console.log("Pause");
 
         }
-
         else {
 
-            debug("Application Resume");
+            console.log("Resume");
 
-            resizeCanvas();
+            camera.resize();
 
         }
 
@@ -452,9 +513,9 @@ document.addEventListener(
 
 );
 
-/* ==================================================
+/* ======================================================
     Window Resize
-================================================== */
+====================================================== */
 
 window.addEventListener(
 
@@ -462,102 +523,14 @@ window.addEventListener(
 
     () => {
 
-        resizeCanvas();
+        camera.resize();
 
     }
 
 );
 
-/* ==================================================
-    Orientation
-================================================== */
-
-window.addEventListener(
-
-    "orientationchange",
-
-    () => {
-
-        setTimeout(() => {
-
-            resizeCanvas();
-
-        },300);
-
-    }
-
-);
-
-/* ==================================================
-    Error
-================================================== */
-
-window.addEventListener(
-
-    "error",
-
-    event => {
-
-        console.error(event.error);
-
-        debug(
-
-            "ERROR : " +
-
-            event.message
-
-        );
-
-    }
-
-);
-
-window.addEventListener(
-
-    "unhandledrejection",
-
-    event => {
-
-        console.error(event.reason);
-
-        debug(
-
-            "Promise : " +
-
-            event.reason
-
-        );
-
-    }
-
-);
-
-/* ==================================================
-    DOM Ready
-================================================== */
-
-window.addEventListener(
-
-    "DOMContentLoaded",
-
-    async () => {
-
-        debug("DOM Ready");
-
-        const app =
-
-            new CADARApplication();
-
-        AppState.app = app;
-
-        await app.initialize();
-
-    }
-
-);
-
-/* ==================================================
+/* ======================================================
     Export
-================================================== */
+====================================================== */
 
 export default CADARApplication;
