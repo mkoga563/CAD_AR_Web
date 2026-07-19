@@ -76,7 +76,7 @@ class CADARApplication {
             // Marker
             //------------------------------------------
 
-            marker.initialize();
+             //marker.initialize();
 
             //------------------------------------------
             // QR
