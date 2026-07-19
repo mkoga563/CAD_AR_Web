@@ -38,7 +38,8 @@ export const AppState = {
     //--------------------------------------------------
 
     stream: null,
-
+    
+    app:null,
     cameraFacing: "environment",
 
     //--------------------------------------------------
