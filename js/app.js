@@ -530,3 +530,37 @@ class CADARApplication {
     }
 
 }
+window.addEventListener(
+    "DOMContentLoaded",
+    async () => {
+
+        const app = new CADARApplication();
+
+        AppState.app = app;
+
+        await app.start();
+
+    }
+);
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        if (AppState.stream) {
+            camera.stop();
+        }
+
+    }
+);
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        camera.resize();
+
+    }
+);
+
+export default CADARApplication;
