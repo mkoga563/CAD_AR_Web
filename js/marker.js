@@ -32,17 +32,17 @@ export const marker = {
     // 色
     //--------------------------------------------------
 
-    color:{
+    color: {
 
-        outline:"#00FFFF",
+        outline: "#00FFFF",
 
-        M3:"#00FF00",
+        M3: "#00FF00",
 
-        M4:"#FFFF00",
+        M4: "#FFFF00",
 
-        M5:"#FF4040",
+        M5: "#FF4040",
 
-        other:"#FFFFFF"
+        other: "#FFFFFF"
 
     },
 
@@ -50,25 +50,25 @@ export const marker = {
     // サイズ
     //--------------------------------------------------
 
-    holeRadius:8,
+    holeRadius: 8,
 
-    lineWidth:2,
+    lineWidth: 2,
 
-    font:"16px Arial",
+    font: "16px Arial",
 
     /* ==================================================
         Draw
     ================================================== */
 
-    draw(){
+    draw() {
 
-        if(!AppState.ctx) return;
+        if (!AppState.ctx) return;
 
-        if(!this.visible) return;
+        if (!this.visible) return;
 
-        if(!AppState.jsonLoaded) return;
+        if (!AppState.jsonLoaded) return;
 
-        const ctx=AppState.ctx;
+        const ctx = AppState.ctx;
 
         ctx.save();
 
@@ -77,34 +77,26 @@ export const marker = {
         //------------------------------------------
 
         ctx.translate(
-
             AppState.offsetX,
-
             AppState.offsetY
-
-        );
-
-        ctx.scale(
-
-            AppState.scale,
-
-            AppState.scale
-
         );
 
         ctx.rotate(
-
-            AppState.rotation*Math.PI/180
-
+            AppState.rotation * Math.PI / 180
         );
 
-        ctx.globalAlpha=this.opacity;
+        ctx.scale(
+            AppState.scale,
+            AppState.scale
+        );
+
+        ctx.globalAlpha = this.opacity;
 
         //------------------------------------------
         // Outline
         //------------------------------------------
 
-        if(this.showOutline){
+        if (this.showOutline) {
 
             this.drawOutline(ctx);
 
@@ -124,67 +116,47 @@ export const marker = {
         Outline
     ================================================== */
 
-    drawOutline(ctx){
+    drawOutline(ctx) {
 
-        const outline=
+        const lines = AppState.outline;
 
-            AppState.outline;
+        if (!lines || lines.length === 0) return;
 
-        if(outline.length<2) return;
+        ctx.strokeStyle = "rgba(0,255,255,0.7)";
+        ctx.lineWidth = 2;
 
         ctx.beginPath();
 
-        ctx.strokeStyle=
+        for (const line of lines) {
 
-            this.color.outline;
-
-        ctx.lineWidth=
-
-            this.lineWidth;
-
-        ctx.moveTo(
-
-            outline[0].x,
-
-            outline[0].y
-
-        );
-
-        for(
-
-            let i=1;
-
-            i<outline.length;
-
-            i++
-
-        ){
+            ctx.moveTo(
+                line.start[0],
+                line.start[1]
+            );
 
             ctx.lineTo(
-
-                outline[i].x,
-
-                outline[i].y
-
+                line.end[0],
+                line.end[1]
             );
 
         }
 
         ctx.stroke();
 
+    
     },
 
     /* ==================================================
         Hole
     ================================================== */
 
-    drawHoles(ctx){
+    drawHoles(ctx) {
 
-        for(
+        for (
 
             const hole of AppState.holes
 
-        ){
+        ) {
 
             this.drawHole(
 
@@ -208,33 +180,33 @@ export const marker = {
 
         hole
 
-    ){
+    ) {
 
         //------------------------------------------
         // Color
         //------------------------------------------
 
-        let color=
+        let color =
 
             this.color.other;
 
-        switch(hole.type){
+        switch (hole.type) {
 
             case "M3":
 
-                color=this.color.M3;
+                color = this.color.M3;
 
                 break;
 
             case "M4":
 
-                color=this.color.M4;
+                color = this.color.M4;
 
                 break;
 
             case "M5":
 
-                color=this.color.M5;
+                color = this.color.M5;
 
                 break;
 
@@ -246,9 +218,9 @@ export const marker = {
 
         ctx.beginPath();
 
-        ctx.strokeStyle=color;
+        ctx.strokeStyle = color;
 
-        ctx.lineWidth=2;
+        ctx.lineWidth = 2;
 
         ctx.arc(
 
@@ -260,7 +232,7 @@ export const marker = {
 
             0,
 
-            Math.PI*2
+            Math.PI * 2
 
         );
 
@@ -274,7 +246,7 @@ export const marker = {
 
         ctx.moveTo(
 
-            hole.x-6,
+            hole.x - 6,
 
             hole.y
 
@@ -282,7 +254,7 @@ export const marker = {
 
         ctx.lineTo(
 
-            hole.x+6,
+            hole.x + 6,
 
             hole.y
 
@@ -292,7 +264,7 @@ export const marker = {
 
             hole.x,
 
-            hole.y-6
+            hole.y - 6
 
         );
 
@@ -300,7 +272,7 @@ export const marker = {
 
             hole.x,
 
-            hole.y+6
+            hole.y + 6
 
         );
 
@@ -310,23 +282,23 @@ export const marker = {
         // Hole Number
         //------------------------------------------
 
-        if(
+        if (
 
             this.showHoleNumber
 
-        ){
+        ) {
 
-            ctx.fillStyle=color;
+            ctx.fillStyle = color;
 
-            ctx.font=this.font;
+            ctx.font = this.font;
 
             ctx.fillText(
 
                 hole.type,
 
-                hole.x+10,
+                hole.x + 10,
 
-                hole.y-10
+                hole.y - 10
 
             );
 
@@ -338,7 +310,7 @@ export const marker = {
         Mouse Down
     ================================================== */
 
-    mouseDown(event){
+    mouseDown(event) {
 
         AppState.dragging = true;
 
@@ -352,9 +324,9 @@ export const marker = {
         Mouse Move
     ================================================== */
 
-    mouseMove(event){
+    mouseMove(event) {
 
-        if(!AppState.dragging) return;
+        if (!AppState.dragging) return;
 
         const dx =
 
@@ -378,7 +350,7 @@ export const marker = {
         Mouse Up
     ================================================== */
 
-    mouseUp(){
+    mouseUp() {
 
         AppState.dragging = false;
 
@@ -388,11 +360,11 @@ export const marker = {
         Event Initialize
     ================================================== */
 
-    initialize(){
+    initialize() {
 
         const canvas = AppState.canvas;
 
-        if(!canvas) return;
+        if (!canvas) return;
 
         //------------------------------------------
         // Mouse
@@ -402,7 +374,7 @@ export const marker = {
 
             "mousedown",
 
-            (e)=>{
+            (e) => {
 
                 this.mouseDown(e);
 
@@ -414,7 +386,7 @@ export const marker = {
 
             "mousemove",
 
-            (e)=>{
+            (e) => {
 
                 this.mouseMove(e);
 
@@ -426,7 +398,7 @@ export const marker = {
 
             "mouseup",
 
-            ()=>{
+            () => {
 
                 this.mouseUp();
 
@@ -442,23 +414,23 @@ export const marker = {
 
             "touchstart",
 
-            (e)=>{
+            (e) => {
 
-                if(e.touches.length!==1) return;
+                if (e.touches.length !== 1) return;
 
                 e.preventDefault();
 
-                const t=e.touches[0];
+                const t = e.touches[0];
 
-                AppState.dragging=true;
+                AppState.dragging = true;
 
-                AppState.lastX=t.clientX;
+                AppState.lastX = t.clientX;
 
-                AppState.lastY=t.clientY;
+                AppState.lastY = t.clientY;
 
             },
 
-            {passive:false}
+            { passive: false }
 
         );
 
@@ -466,35 +438,35 @@ export const marker = {
 
             "touchmove",
 
-            (e)=>{
+            (e) => {
 
-                if(
+                if (
 
                     !AppState.dragging ||
 
-                    e.touches.length!==1
+                    e.touches.length !== 1
 
                 ) return;
 
                 e.preventDefault();
 
-                const t=e.touches[0];
+                const t = e.touches[0];
 
-                const dx=t.clientX-AppState.lastX;
+                const dx = t.clientX - AppState.lastX;
 
-                const dy=t.clientY-AppState.lastY;
+                const dy = t.clientY - AppState.lastY;
 
-                AppState.offsetX+=dx;
+                AppState.offsetX += dx;
 
-                AppState.offsetY+=dy;
+                AppState.offsetY += dy;
 
-                AppState.lastX=t.clientX;
+                AppState.lastX = t.clientX;
 
-                AppState.lastY=t.clientY;
+                AppState.lastY = t.clientY;
 
             },
 
-            {passive:false}
+            { passive: false }
 
         );
 
@@ -502,9 +474,9 @@ export const marker = {
 
             "touchend",
 
-            ()=>{
+            () => {
 
-                AppState.dragging=false;
+                AppState.dragging = false;
 
             }
 
@@ -517,11 +489,11 @@ export const marker = {
         );
 
     },
-        /* ==================================================
-        Touch Distance
-    ================================================== */
+    /* ==================================================
+    Touch Distance
+================================================== */
 
-    touchDistance(t1, t2){
+    touchDistance(t1, t2) {
 
         const dx = t2.clientX - t1.clientX;
         const dy = t2.clientY - t1.clientY;
@@ -534,7 +506,7 @@ export const marker = {
         Touch Angle
     ================================================== */
 
-    touchAngle(t1, t2){
+    touchAngle(t1, t2) {
 
         return Math.atan2(
 
@@ -549,9 +521,9 @@ export const marker = {
         Pinch Start
     ================================================== */
 
-    pinchStart(e){
+    pinchStart(e) {
 
-        if(e.touches.length !== 2) return;
+        if (e.touches.length !== 2) return;
 
         e.preventDefault();
 
@@ -583,9 +555,9 @@ export const marker = {
         Pinch Move
     ================================================== */
 
-    pinchMove(e){
+    pinchMove(e) {
 
-        if(
+        if (
 
             !AppState.pinching ||
 
@@ -659,13 +631,13 @@ export const marker = {
 
             );
 
-        if(scaleLabel){
+        if (scaleLabel) {
 
             scaleLabel.textContent =
 
                 (AppState.scale * 100)
 
-                .toFixed(0)
+                    .toFixed(0)
 
                 + "%";
 
@@ -679,13 +651,13 @@ export const marker = {
 
             );
 
-        if(rotationLabel){
+        if (rotationLabel) {
 
             rotationLabel.textContent =
 
                 AppState.rotation
 
-                .toFixed(1)
+                    .toFixed(1)
 
                 + "°";
 
@@ -697,16 +669,16 @@ export const marker = {
         Pinch End
     ================================================== */
 
-    pinchEnd(){
+    pinchEnd() {
 
         AppState.pinching = false;
 
     },
-        /* ==================================================
-        Reset
-    ================================================== */
+    /* ==================================================
+    Reset
+================================================== */
 
-    reset(){
+    reset() {
 
         AppState.scale = 1.0;
 
@@ -724,13 +696,13 @@ export const marker = {
         Marker Visible
     ================================================== */
 
-    setVisible(flag){
+    setVisible(flag) {
 
         this.visible = flag;
 
     },
 
-    toggleMarker(){
+    toggleMarker() {
 
         this.visible = !this.visible;
 
@@ -740,7 +712,7 @@ export const marker = {
         Outline
     ================================================== */
 
-    toggleOutline(){
+    toggleOutline() {
 
         this.showOutline =
 
@@ -752,7 +724,7 @@ export const marker = {
         Hole Number
     ================================================== */
 
-    toggleHoleNumber(){
+    toggleHoleNumber() {
 
         this.showHoleNumber =
 
@@ -764,7 +736,7 @@ export const marker = {
         Opacity
     ================================================== */
 
-    setOpacity(value){
+    setOpacity(value) {
 
         value = Math.max(0.1, value);
 
@@ -778,7 +750,7 @@ export const marker = {
         Scale
     ================================================== */
 
-    setScale(scale){
+    setScale(scale) {
 
         AppState.scale = scale;
 
@@ -790,7 +762,7 @@ export const marker = {
         Rotation
     ================================================== */
 
-    setRotation(rotation){
+    setRotation(rotation) {
 
         AppState.rotation = rotation;
 
@@ -802,7 +774,7 @@ export const marker = {
         Position
     ================================================== */
 
-    setPosition(x,y){
+    setPosition(x, y) {
 
         AppState.offsetX = x;
 
@@ -814,7 +786,7 @@ export const marker = {
         Information
     ================================================== */
 
-    updateInfo(){
+    updateInfo() {
 
         const scale =
 
@@ -824,13 +796,13 @@ export const marker = {
 
             );
 
-        if(scale){
+        if (scale) {
 
             scale.textContent =
 
-                (AppState.scale*100).toFixed(0)
+                (AppState.scale * 100).toFixed(0)
 
-                +"%";
+                + "%";
 
         }
 
@@ -842,13 +814,13 @@ export const marker = {
 
             );
 
-        if(rotation){
+        if (rotation) {
 
             rotation.textContent =
 
                 AppState.rotation.toFixed(1)
 
-                +"°";
+                + "°";
 
         }
 
@@ -860,7 +832,7 @@ export const marker = {
 
             );
 
-        if(holes){
+        if (holes) {
 
             holes.textContent =
 
@@ -874,9 +846,9 @@ export const marker = {
         Animation
     ================================================== */
 
-    render(){
+    render() {
 
-        if(
+        if (
 
             !AppState.ctx ||
 
@@ -906,7 +878,7 @@ export const marker = {
     Animation Loop
 ====================================================== */
 
-function animationLoop(){
+function animationLoop() {
 
     marker.render();
 
@@ -932,9 +904,9 @@ window.addEventListener(
 
     "DOMContentLoaded",
 
-    ()=>{
+    () => {
 
-        const reset=
+        const reset =
 
             document.getElementById(
 
@@ -942,9 +914,9 @@ window.addEventListener(
 
             );
 
-        if(reset){
+        if (reset) {
 
-            reset.onclick=()=>{
+            reset.onclick = () => {
 
                 marker.reset();
 
@@ -952,7 +924,7 @@ window.addEventListener(
 
         }
 
-        const outline=
+        const outline =
 
             document.getElementById(
 
@@ -960,9 +932,9 @@ window.addEventListener(
 
             );
 
-        if(outline){
+        if (outline) {
 
-            outline.onclick=()=>{
+            outline.onclick = () => {
 
                 marker.toggleOutline();
 
@@ -970,7 +942,7 @@ window.addEventListener(
 
         }
 
-        const markerButton=
+        const markerButton =
 
             document.getElementById(
 
@@ -978,9 +950,9 @@ window.addEventListener(
 
             );
 
-        if(markerButton){
+        if (markerButton) {
 
-            markerButton.onclick=()=>{
+            markerButton.onclick = () => {
 
                 marker.toggleMarker();
 
