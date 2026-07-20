@@ -1,8 +1,7 @@
 // ======================================================
 // CAD AR System
-// Version 4.0
-// app.js
-
+// Version 4.1
+// app.js (Part1)
 // ======================================================
 
 "use strict";
@@ -21,7 +20,7 @@ class CADARApplication {
 
     constructor() {
 
-        console.log("CAD AR Version 4.0");
+        console.log("CAD AR Version 4.1");
 
     }
 
@@ -43,6 +42,12 @@ class CADARApplication {
             AppState.canvas =
                 document.getElementById("canvas");
 
+            if (!AppState.video)
+                throw new Error("video が見つかりません");
+
+            if (!AppState.canvas)
+                throw new Error("canvas が見つかりません");
+
             AppState.ctx =
                 AppState.canvas.getContext("2d");
 
@@ -50,9 +55,7 @@ class CADARApplication {
             // Camera
             //------------------------------------------
 
-            document.getElementById(
-                "status"
-            ).textContent =
+            document.getElementById("status").textContent =
                 "カメラ起動中...";
 
             const ok =
@@ -66,17 +69,7 @@ class CADARApplication {
 
             }
 
-            //------------------------------------------
-            // Canvas
-            //------------------------------------------
-
             camera.resize();
-
-            //------------------------------------------
-            // Marker
-            //------------------------------------------
-
-            //marker.initialize();
 
             //------------------------------------------
             // QR
@@ -88,12 +81,16 @@ class CADARApplication {
             );
 
             //------------------------------------------
+            // Menu
+            //------------------------------------------
+
+            this.initializeMenu();
+
+            //------------------------------------------
             // Status
             //------------------------------------------
 
-            document.getElementById(
-                "status"
-            ).textContent =
+            document.getElementById("status").textContent =
                 "準備完了";
 
             AppState.initialized = true;
@@ -113,6 +110,39 @@ class CADARApplication {
     }
 
     /* ==================================================
+        Side Menu
+    ================================================== */
+
+    initializeMenu() {
+
+        const menuButton =
+            document.getElementById("menuButton");
+
+        const sideMenu =
+            document.getElementById("sideMenu");
+
+        if (!menuButton || !sideMenu) {
+
+            console.log("Side Menu Not Found");
+
+            return;
+
+        }
+
+        menuButton.addEventListener(
+
+            "click",
+
+            () => {
+
+                sideMenu.classList.toggle("open");
+
+            }
+
+        );
+
+    }
+        /* ==================================================
         CAD読込
     ================================================== */
 
@@ -121,91 +151,95 @@ class CADARApplication {
         try {
 
             const input =
+                document.getElementById("partNo");
 
-                document.getElementById(
+            if (!input) {
 
-                    "partNo"
+                throw new Error("partNo が見つかりません");
 
-                );
+            }
 
             const partNo =
-
                 input.value.trim();
 
             if (partNo === "") {
 
                 alert("部品番号を入力してください。");
 
+                input.focus();
+
                 return;
 
             }
 
-            document.getElementById(
+            //------------------------------------------
+            // Status
+            //------------------------------------------
 
-                "status"
+            const status =
+                document.getElementById("status");
 
-            ).textContent =
+            if (status) {
 
-                "CAD読込中...";
+                status.textContent =
+                    "CAD読込中...";
+
+            }
 
             //------------------------------------------
-            // JSON
+            // JSON読込
             //------------------------------------------
 
             const ok =
-
-                await dxfLoader.load(
-
-                    partNo
-
-                );
+                await dxfLoader.load(partNo);
 
             if (!ok) {
 
-                document.getElementById(
+                if (status) {
 
-                    "status"
+                    status.textContent =
+                        "JSON読込失敗";
 
-                ).textContent =
-
-                    "JSON読込失敗";
+                }
 
                 return;
 
             }
 
             //------------------------------------------
-            // 情報更新
+            // Marker更新
             //------------------------------------------
 
             marker.updateInfo();
 
             //------------------------------------------
-            // 保存
+            // 前回部品保存
             //------------------------------------------
 
             localStorage.setItem(
-
                 "cadar_part",
-
                 partNo
-
             );
 
-            document.getElementById(
+            //------------------------------------------
+            // Status
+            //------------------------------------------
 
-                "status"
+            if (status) {
 
-            ).textContent =
+                status.textContent =
+                    "CAD読込完了";
 
-                "CAD読込完了";
+            }
 
             console.log(
-
-                "Part Loaded",
-
+                "Part Loaded :",
                 partNo
+            );
 
+            console.log(
+                "Hole Count :",
+                dxfLoader.getHoleCount()
             );
 
         }
@@ -221,30 +255,29 @@ class CADARApplication {
     }
 
     /* ==================================================
-        Last Part
+        前回部品読込
     ================================================== */
 
     loadLastPart() {
 
         const part =
-
             localStorage.getItem(
-
                 "cadar_part"
-
             );
 
         if (!part) return;
 
-        document.getElementById(
+        const input =
+            document.getElementById("partNo");
 
-            "partNo"
+        if (input) {
 
-        ).value = part;
+            input.value = part;
+
+        }
 
     }
-
-    /* ==================================================
+        /* ==================================================
         Event
     ================================================== */
 
@@ -254,15 +287,12 @@ class CADARApplication {
         // CAD読込
         //------------------------------------------
 
-        document
+        const loadButton =
+            document.getElementById("loadButton");
 
-            .getElementById(
+        if (loadButton) {
 
-                "loadButton"
-
-            )
-
-            .addEventListener(
+            loadButton.addEventListener(
 
                 "click",
 
@@ -274,29 +304,24 @@ class CADARApplication {
 
             );
 
+        }
+
         //------------------------------------------
-        // Enter
+        // Enterキー
         //------------------------------------------
 
-        document
+        const partNo =
+            document.getElementById("partNo");
 
-            .getElementById(
+        if (partNo) {
 
-                "partNo"
-
-            )
-
-            .addEventListener(
+            partNo.addEventListener(
 
                 "keydown",
 
                 (e) => {
 
-                    if (
-
-                        e.key === "Enter"
-
-                    ) {
+                    if (e.key === "Enter") {
 
                         this.loadPart();
 
@@ -306,19 +331,18 @@ class CADARApplication {
 
             );
 
+        }
+
         //------------------------------------------
-        // Reset
+        // リセット
         //------------------------------------------
 
-        document
+        const resetButton =
+            document.getElementById("resetButton");
 
-            .getElementById(
+        if (resetButton) {
 
-                "resetButton"
-
-            )
-
-            .addEventListener(
+            resetButton.addEventListener(
 
                 "click",
 
@@ -330,72 +354,72 @@ class CADARApplication {
 
             );
 
+        }
+
         //------------------------------------------
-        // Outline
+        // 外形表示
         //------------------------------------------
 
-        document
+        const outlineCheck =
+            document.getElementById("outlineCheck");
 
-            .getElementById(
+        if (outlineCheck) {
 
-                "outlineButton"
+            outlineCheck.addEventListener(
 
-            )
-
-            .addEventListener(
-
-                "click",
+                "change",
 
                 () => {
 
-                    marker.toggleOutline();
+                    marker.showOutline =
+                        outlineCheck.checked;
 
                 }
 
             );
 
+        }
+
         //------------------------------------------
-        // Marker
+        // 穴表示
         //------------------------------------------
 
-        document
+        const markerCheck =
+            document.getElementById("markerCheck");
 
-            .getElementById(
+        if (markerCheck) {
 
-                "markerButton"
+            markerCheck.addEventListener(
 
-            )
-
-            .addEventListener(
-
-                "click",
+                "change",
 
                 () => {
 
-                    marker.toggleMarker();
+                    marker.visible =
+                        markerCheck.checked;
 
                 }
 
             );
+
+        }
+
         //------------------------------------------
-        // Menu
+        // カメラ切替
         //------------------------------------------
 
-        const menuButton =
-            document.getElementById("menuButton");
+        const cameraButton =
+            document.getElementById("cameraButton");
 
-        const sideMenu =
-            document.getElementById("sideMenu");
+        if (cameraButton) {
 
-        if (menuButton && sideMenu) {
-
-            menuButton.addEventListener(
+            cameraButton.addEventListener(
 
                 "click",
 
-                () => {
+                async () => {
 
-                    sideMenu.classList.toggle("open");
+                    await camera.switchCamera();
 
                 }
 
@@ -404,9 +428,9 @@ class CADARApplication {
         }
 
     }
-    /* ==================================================
-    Start
-================================================== */
+        /* ==================================================
+        Start
+    ================================================== */
 
     async start() {
 
@@ -417,46 +441,36 @@ class CADARApplication {
         await this.initialize();
 
         //------------------------------------------
-        // ボタンイベント
+        // イベント
         //------------------------------------------
 
         this.bindEvents();
 
         //------------------------------------------
-        // 前回部品番号
+        // 前回部品
         //------------------------------------------
 
         this.loadLastPart();
 
         //------------------------------------------
-        // 前回自動読込（入力がある場合）
+        // 自動読込
         //------------------------------------------
 
-        const partNo =
+        const input =
+            document.getElementById("partNo");
 
-            document.getElementById(
-
-                "partNo"
-
-            ).value.trim();
-
-        if (partNo !== "") {
+        if (input && input.value.trim() !== "") {
 
             await this.loadPart();
 
         }
 
         //------------------------------------------
-        // Loading
+        // Loading終了
         //------------------------------------------
 
         const loading =
-
-            document.getElementById(
-
-                "loading"
-
-            );
+            document.getElementById("loading");
 
         if (loading) {
 
@@ -464,99 +478,55 @@ class CADARApplication {
 
         }
 
+        //------------------------------------------
+        // 描画開始
+        //------------------------------------------
+
+        this.drawLoop();
+
         console.log("System Start");
 
     }
 
+    /* ==================================================
+        Draw Loop
+    ================================================== */
+
+    drawLoop() {
+
+        const loop = () => {
+
+            if (
+                AppState.ctx &&
+                AppState.initialized &&
+                AppState.jsonLoaded
+            ) {
+
+                //----------------------------------
+                // Canvasクリア
+                //----------------------------------
+
+                AppState.ctx.clearRect(
+                    0,
+                    0,
+                    AppState.canvas.width,
+                    AppState.canvas.height
+                );
+
+                //----------------------------------
+                // CAD描画
+                //----------------------------------
+
+                marker.draw();
+
+            }
+
+            requestAnimationFrame(loop);
+
+        };
+
+        requestAnimationFrame(loop);
+
+    }
+
 }
-
-/* ======================================================
-    DOM Ready
-====================================================== */
-
-window.addEventListener(
-
-    "DOMContentLoaded",
-
-    async () => {
-
-        const app =
-
-            new CADARApplication();
-
-        AppState.app = app;
-
-        await app.start();
-
-    }
-
-);
-
-/* ======================================================
-    Before Unload
-====================================================== */
-
-window.addEventListener(
-
-    "beforeunload",
-
-    () => {
-
-        if (AppState.stream) {
-
-            camera.stop();
-
-        }
-
-    }
-
-);
-
-/* ======================================================
-    Visibility Change
-====================================================== */
-
-document.addEventListener(
-
-    "visibilitychange",
-
-    () => {
-
-        if (document.hidden) {
-
-            console.log("Pause");
-
-        }
-        else {
-
-            console.log("Resume");
-
-            camera.resize();
-
-        }
-
-    }
-
-);
-
-/* ======================================================
-    Window Resize
-====================================================== */
-
-window.addEventListener(
-
-    "resize",
-
-    () => {
-
-        camera.resize();
-
-    }
-
-);
-
-/* ======================================================
-    Export
-====================================================== */
-
-export default CADARApplication;
