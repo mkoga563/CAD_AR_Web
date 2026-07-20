@@ -2,7 +2,7 @@
 // CAD AR System
 // Version 4.0
 // state.js
-// アプリケーション状態管理
+
 // ======================================================
 
 "use strict";
@@ -19,7 +19,7 @@ export const AppState = {
 
     initialized: false,
 
-    version: "4.0.0",
+    version: "4.0.1",
 
     debug: true,
 
