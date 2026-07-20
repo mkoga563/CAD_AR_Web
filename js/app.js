@@ -76,7 +76,7 @@ class CADARApplication {
             // Marker
             //------------------------------------------
 
-             //marker.initialize();
+            //marker.initialize();
 
             //------------------------------------------
             // QR
@@ -111,6 +111,7 @@ class CADARApplication {
         }
 
     }
+
     /* ==================================================
         CAD読込
     ================================================== */
@@ -376,6 +377,31 @@ class CADARApplication {
                 }
 
             );
+        //------------------------------------------
+        // Menu
+        //------------------------------------------
+
+        const menuButton =
+            document.getElementById("menuButton");
+
+        const sideMenu =
+            document.getElementById("sideMenu");
+
+        if (menuButton && sideMenu) {
+
+            menuButton.addEventListener(
+
+                "click",
+
+                () => {
+
+                    sideMenu.classList.toggle("open");
+
+                }
+
+            );
+
+        }
 
     }
     /* ==================================================

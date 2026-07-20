@@ -3,175 +3,157 @@
 
 <head>
 
-<meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 
-<meta
-    name="theme-color"
-    content="#222222">
+    <meta name="theme-color" content="#222222">
 
-<title>CAD AR System Ver4.0</title>
+    <title>CAD AR System Ver4.0</title>
 
-<link
-    rel="stylesheet"
-    href="style.css">
+    <link rel="stylesheet" href="style.css">
 
-<!-- QRCode -->
+    <!-- QRCode -->
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 </head>
 
 <body>
 
-<div id="app">
+    <div id="app">
 
-    <!-- ==========================
+        <!-- ==========================
          Camera
     =========================== -->
 
-    <video
-        id="video"
-        autoplay
-        playsinline
-        muted>
-    </video>
+        <video id="video" autoplay playsinline muted>
+        </video>
 
-    <!-- ==========================
+        <!-- ==========================
          Marker Canvas
     =========================== -->
 
-    <canvas
-        id="canvas">
-    </canvas>
+        <canvas id="canvas">
+        </canvas>
 
-    <!-- ==========================
+        <!-- ==========================
          Top Panel
     =========================== -->
 
-    <div id="topPanel">
-
-        <input
-            id="partNo"
-            type="text"
-            placeholder="部品番号">
-
-        <button id="loadButton">
-
-            CAD読込
-
+        <button id="menuButton">
+            ☰
         </button>
+        <div id="sideMenu">
 
-    </div>
+            <h2>CAD AR</h2>
 
-    <!-- ==========================
+            <input id="partNo" type="text" placeholder="部品番号">
+
+            <button id="loadButton">
+                CAD読込
+            </button>
+
+            <button id="resetButton">
+                リセット
+            </button>
+
+            <label>
+                <input type="checkbox" id="outlineCheck" checked>
+                外形表示
+            </label>
+
+            <label>
+                <input type="checkbox" id="markerCheck" checked>
+                穴表示
+            </label>
+
+            <button id="cameraButton">
+                カメラ切替
+            </button>
+
+        </div>
+        <!-- ==========================
          QR
     =========================== -->
 
-    <div id="qrcode">
-    </div>
+        <div id="qrcode">
+        </div>
 
-    <!-- ==========================
+        <!-- ==========================
          Status
     =========================== -->
 
-    <div id="status">
+        <div id="status">
 
-        起動中...
+            起動中...
 
-    </div>
+        </div>
 
-    <!-- ==========================
+        <!-- ==========================
          Info
     =========================== -->
 
-    <div id="info">
+        <div id="info">
 
-        <div>
+            <div>
 
-            Scale :
-            <span id="scaleValue">
+                Scale :
+                <span id="scaleValue">
 
-                100%
+                    100%
 
-            </span>
+                </span>
+
+            </div>
+
+            <div>
+
+                Rotation :
+                <span id="rotationValue">
+
+                    0°
+
+                </span>
+
+            </div>
+
+            <div>
+
+                Holes :
+                <span id="holeCount">
+
+                    0
+
+                </span>
+
+            </div>
 
         </div>
 
-        <div>
+        
 
-            Rotation :
-            <span id="rotationValue">
-
-                0°
-
-            </span>
-
-        </div>
-
-        <div>
-
-            Holes :
-            <span id="holeCount">
-
-                0
-
-            </span>
-
-        </div>
-
-    </div>
-
-    <!-- ==========================
-         Bottom Toolbar
-    =========================== -->
-
-    <div id="toolbar">
-
-        <button id="resetButton">
-
-            リセット
-
-        </button>
-
-        <button id="outlineButton">
-
-            外形
-
-        </button>
-
-        <button id="markerButton">
-
-            穴表示
-
-        </button>
-
-    </div>
-
-    <!-- ==========================
+        <!-- ==========================
          Loading
     =========================== -->
 
-    <div id="loading">
+        <div id="loading">
 
-        <div class="loadingBox">
+            <div class="loadingBox">
 
-            読み込み中...
+                読み込み中...
+
+            </div>
 
         </div>
 
     </div>
 
-</div>
-
-<!-- ==========================
+    <!-- ==========================
      JavaScript
 =========================== -->
 
-<script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/app.js"></script>
 
 </body>
 
