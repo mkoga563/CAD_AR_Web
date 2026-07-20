@@ -82,7 +82,7 @@ export const dxfLoader = {
 
             console.log(
 
-                "Outline :", data.outline.length
+                "Lines :", data.lines.length
 
             );
 

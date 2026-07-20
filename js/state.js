@@ -192,14 +192,23 @@ export function setPartData(data){
 
     AppState.holes = data.holes ?? [];
 
-    AppState.outline = data.outline ?? [];
+    AppState.outline = data.lines ?? [];
 
-    AppState.width = data.width ?? 0;
+    AppState.holeCount = AppState.holes.length;
 
-    AppState.height = data.height ?? 0;
+    // 幅・高さ計算
+    let maxX = 0;
+    let maxY = 0;
 
-    AppState.holeCount =
-        AppState.holes.length;
+    for (const line of AppState.outline) {
+
+        maxX = Math.max(maxX, line.start[0], line.end[0]);
+        maxY = Math.max(maxY, line.start[1], line.end[1]);
+
+    }
+
+    AppState.width = maxX;
+    AppState.height = maxY;
 
     AppState.jsonLoaded = true;
 
